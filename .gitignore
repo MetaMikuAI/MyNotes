@@ -1,0 +1,23 @@
+# Build output
+bin/
+obj/
+
+# Local IDE/editor state
+.vs/
+.idea/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Local Codex/agent state
+.agents/
+.codex/
+
+# Local runtime configuration and secrets
+appsettings.json
+appsettings.*.json
+!appsettings.example.json
+
+docs/

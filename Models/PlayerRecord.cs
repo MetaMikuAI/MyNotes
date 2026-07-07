@@ -1,0 +1,13 @@
+namespace MyNotes.Models;
+
+public sealed class PlayerRecord
+{
+    public long ProfileId { get; init; }
+    public string PlayerId { get; init; } = "";
+    public string DisplayName { get; set; } = "MyNotes";
+    public string AuthorizationKey { get; init; } = "";
+    public string DeviceId { get; init; } = "";
+    public string InitialDataGroup { get; init; } = "";
+    public byte[] LiveSettingAll { get; set; } = [];
+    public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
+}

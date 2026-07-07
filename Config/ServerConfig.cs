@@ -1,0 +1,41 @@
+namespace MyNotes.Config;
+
+public static class ServerConfig
+{
+    public static int GrpcPort { get; private set; } = 9831;
+    public static int HttpPort { get; private set; } = 9832;
+    public static string MasterVersion { get; private set; } = "9c23d88a191e4648f0a28f4bbd4edb6403d5adf99ac5793efd7cc1cb3d49104c";
+    public static string InitialDataGroup { get; private set; } = "cbt_0.1.8_";
+    public static string BasicAuthUser { get; private set; } = "";
+    public static string BasicAuthPass { get; private set; } = "";
+    public static bool RequireBasicAuth { get; private set; }
+    public static string DataDirectory { get; private set; } = "data";
+    public static string OfficialAssetRootUrl { get; private set; } = "";
+    public static int OfficialAssetRequestTimeoutSeconds { get; private set; } = 30;
+
+    public static void Load(IConfiguration configuration)
+    {
+        GrpcPort = configuration.GetValue("Server:GrpcPort", configuration.GetValue("Server:Port", GrpcPort));
+        HttpPort = configuration.GetValue("Server:HttpPort", HttpPort);
+        MasterVersion = configuration.GetValue("Game:MasterVersion", MasterVersion) ?? MasterVersion;
+        InitialDataGroup = configuration.GetValue("Game:InitialDataGroup", InitialDataGroup) ?? InitialDataGroup;
+        BasicAuthUser = configuration.GetValue("Game:BasicAuthUser", BasicAuthUser) ?? BasicAuthUser;
+        BasicAuthPass = configuration.GetValue("Game:BasicAuthPass", BasicAuthPass) ?? BasicAuthPass;
+        RequireBasicAuth = configuration.GetValue("Game:RequireBasicAuth", RequireBasicAuth);
+        DataDirectory = configuration.GetValue("Game:DataDirectory", DataDirectory) ?? DataDirectory;
+        OfficialAssetRootUrl = configuration.GetValue("Static:OfficialAssetRootUrl", OfficialAssetRootUrl) ?? OfficialAssetRootUrl;
+        OfficialAssetRequestTimeoutSeconds = configuration.GetValue(
+            "Static:OfficialAssetRequestTimeoutSeconds",
+            OfficialAssetRequestTimeoutSeconds);
+    }
+
+    public static bool HasBasicAuth =>
+        !string.IsNullOrWhiteSpace(BasicAuthUser) &&
+        !string.IsNullOrWhiteSpace(BasicAuthPass);
+
+    public static string ExpectedBasicAuth =>
+        "Basic " + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"{BasicAuthUser}:{BasicAuthPass}"));
+
+    public static bool IsExpectedBasicAuth(string value) =>
+        HasBasicAuth && string.Equals(value, ExpectedBasicAuth, StringComparison.Ordinal);
+}
