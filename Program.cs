@@ -7,6 +7,8 @@ using MyNotes.Services;
 using HomeGetRequest = App.Protobuf.Home.GetHomeRequest;
 using LiveSaveSettingRequest = App.Protobuf.Live.SaveSettingRequest;
 using MasterdataVersionRequest = App.Protobuf.Masterdata.VersionRequest;
+using MissionFetchRequest = App.Protobuf.Present.FetchMissionRequest;
+using MissionFetchResponse = App.Protobuf.Present.FetchMissionResponse;
 using PlayerCheckNgWordRequest = App.Protobuf.Player.CheckNgWordRequest;
 using PlayerCheckNgWordResponse = App.Protobuf.Player.CheckNgWordResponse;
 using PlayerEditProfileRequest = App.Protobuf.Player.EditProfileRequest;
@@ -149,6 +151,11 @@ app.MapGrpcUnary(
     "/app.present.PresentService/Fetch",
     PresentFetchRequest.Parser,
     static (_, _) => Task.FromResult(new PresentFetchResponse()));
+
+app.MapGrpcUnary(
+    "/app.mission.MissionService/Fetch",
+    MissionFetchRequest.Parser,
+    static (_, _) => Task.FromResult(new MissionFetchResponse()));
 
 app.MapGrpcUnary(
     "/app.live.LiveService/SaveSetting",
