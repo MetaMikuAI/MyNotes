@@ -13,6 +13,8 @@ using PlayerEditProfileRequest = App.Protobuf.Player.EditProfileRequest;
 using PlayerEditProfileResponse = App.Protobuf.Player.EditProfileResponse;
 using PlayerGetDataRequest = App.Protobuf.Player.GetPlayerDataRequest;
 using PlayerRegisterRequest = App.Protobuf.Player.RegisterRequest;
+using PresentFetchRequest = App.Protobuf.Present.FetchRequest;
+using PresentFetchResponse = App.Protobuf.Present.FetchResponse;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -142,6 +144,11 @@ app.MapGrpcUnary(
         var player = players.GetFromRequest(ctx.Request);
         return Task.FromResult(protocol.Get(home.GetFor(player)));
     });
+
+app.MapGrpcUnary(
+    "/app.present.PresentService/Fetch",
+    PresentFetchRequest.Parser,
+    static (_, _) => Task.FromResult(new PresentFetchResponse()));
 
 app.MapGrpcUnary(
     "/app.live.LiveService/SaveSetting",
