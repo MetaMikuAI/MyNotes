@@ -19,6 +19,8 @@ using PlayerGetDataRequest = App.Protobuf.Player.GetPlayerDataRequest;
 using PlayerRegisterRequest = App.Protobuf.Player.RegisterRequest;
 using PresentFetchRequest = App.Protobuf.Present.FetchRequest;
 using PresentFetchResponse = App.Protobuf.Present.FetchResponse;
+using PresentHistoryRequest = App.Protobuf.Present.HistoryRequest;
+using PresentHistoryResponse = App.Protobuf.Present.HistoryResponse;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -153,6 +155,11 @@ app.MapGrpcUnary(
     "/app.present.PresentService/Fetch",
     PresentFetchRequest.Parser,
     static (_, _) => Task.FromResult(new PresentFetchResponse()));
+
+app.MapGrpcUnary(
+    "/app.present.PresentService/History",
+    PresentHistoryRequest.Parser,
+    static (_, _) => Task.FromResult(new PresentHistoryResponse()));
 
 app.MapGrpcUnary(
     "/app.mission.MissionService/Fetch",
