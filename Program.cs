@@ -7,6 +7,8 @@ using MyNotes.Services;
 using HomeGetRequest = App.Protobuf.Home.GetHomeRequest;
 using LiveSaveSettingRequest = App.Protobuf.Live.SaveSettingRequest;
 using MasterdataVersionRequest = App.Protobuf.Masterdata.VersionRequest;
+using PlayerCheckNgWordRequest = App.Protobuf.Player.CheckNgWordRequest;
+using PlayerCheckNgWordResponse = App.Protobuf.Player.CheckNgWordResponse;
 using PlayerEditProfileRequest = App.Protobuf.Player.EditProfileRequest;
 using PlayerEditProfileResponse = App.Protobuf.Player.EditProfileResponse;
 using PlayerGetDataRequest = App.Protobuf.Player.GetPlayerDataRequest;
@@ -112,6 +114,11 @@ app.MapGrpcUnary(
         var player = players.GetFromRequest(ctx.Request);
         return Task.FromResult(protocol.GetPlayerData(player));
     });
+
+app.MapGrpcUnary(
+    "/app.player.PlayerService/CheckNgWord",
+    PlayerCheckNgWordRequest.Parser,
+    static (_, _) => Task.FromResult(new PlayerCheckNgWordResponse()));
 
 app.MapGrpcUnary(
     "/app.player.PlayerService/EditProfile",
