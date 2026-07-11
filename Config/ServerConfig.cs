@@ -12,6 +12,8 @@ public static class ServerConfig
     public static string DataDirectory { get; private set; } = "data";
     public static string OfficialAssetRootUrl { get; private set; } = "";
     public static int OfficialAssetRequestTimeoutSeconds { get; private set; } = 30;
+    public static bool StaticAssetCacheEnabled { get; private set; }
+    public static string StaticAssetCacheDirectory { get; private set; } = "data/static-cache";
 
     public static void Load(IConfiguration configuration)
     {
@@ -27,6 +29,12 @@ public static class ServerConfig
         OfficialAssetRequestTimeoutSeconds = configuration.GetValue(
             "Static:OfficialAssetRequestTimeoutSeconds",
             OfficialAssetRequestTimeoutSeconds);
+        StaticAssetCacheEnabled = configuration.GetValue(
+            "Static:CacheEnabled",
+            StaticAssetCacheEnabled);
+        StaticAssetCacheDirectory = configuration.GetValue(
+            "Static:CacheDirectory",
+            StaticAssetCacheDirectory) ?? StaticAssetCacheDirectory;
     }
 
     public static bool HasBasicAuth =>

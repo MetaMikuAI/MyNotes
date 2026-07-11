@@ -1,6 +1,7 @@
 # Build output
 bin/
 obj/
+data/static-cache/
 
 # Local IDE/editor state
 .vs/
