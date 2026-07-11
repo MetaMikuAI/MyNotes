@@ -4,6 +4,8 @@ using MyNotes.Controllers;
 using MyNotes.Config;
 using MyNotes.Middleware;
 using MyNotes.Services;
+using AnnouncementGetListRequest = App.Protobuf.Announcement.GetListRequest;
+using AnnouncementGetListResponse = App.Protobuf.Announcement.GetListResponse;
 using HomeGetRequest = App.Protobuf.Home.GetHomeRequest;
 using LiveSaveSettingRequest = App.Protobuf.Live.SaveSettingRequest;
 using MasterdataVersionRequest = App.Protobuf.Masterdata.VersionRequest;
@@ -156,6 +158,11 @@ app.MapGrpcUnary(
     "/app.mission.MissionService/Fetch",
     MissionFetchRequest.Parser,
     static (_, _) => Task.FromResult(new MissionFetchResponse()));
+
+app.MapGrpcUnary(
+    "/app.announcement.AnnouncementService/GetList",
+    AnnouncementGetListRequest.Parser,
+    static (_, _) => Task.FromResult(new AnnouncementGetListResponse()));
 
 app.MapGrpcUnary(
     "/app.live.LiveService/SaveSetting",
