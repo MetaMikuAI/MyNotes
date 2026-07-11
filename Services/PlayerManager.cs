@@ -22,7 +22,7 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
             AuthorizationKey = NewToken(32),
             DeviceId = NewToken(16),
             InitialDataGroup = string.IsNullOrWhiteSpace(initialDataGroup) ? ServerConfig.InitialDataGroup : initialDataGroup,
-            LiveSettingAll = MyNotesProtobuf.CreateDefaultLiveSettingAll()
+            LiveSettingAll = LiveSettingCodec.CreateDefaultLiveSettingAll()
         };
 
         Add(player);
@@ -49,7 +49,7 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
 
     public void UpdateLiveSetting(PlayerRecord player, byte[] settingAll)
     {
-        player.LiveSettingAll = MyNotesProtobuf.NormalizeLiveSettingAll(settingAll);
+        player.LiveSettingAll = LiveSettingCodec.NormalizeLiveSettingAll(settingAll);
         logger.LogInformation("Updated player {PlayerId} live setting ({ByteCount} bytes)", player.PlayerId, settingAll.Length);
     }
 

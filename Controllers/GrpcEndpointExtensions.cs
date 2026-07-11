@@ -1,3 +1,4 @@
+using Google.Protobuf;
 using MyNotes.Config;
 using MyNotes.Services;
 
@@ -5,6 +6,22 @@ namespace MyNotes.Middleware;
 
 public static class GrpcEndpointExtensions
 {
+    public static IEndpointRouteBuilder MapGrpcUnary<TRequest, TResponse>(
+        this IEndpointRouteBuilder endpoints,
+        string pattern,
+        MessageParser<TRequest> requestParser,
+        Func<HttpContext, TRequest, Task<TResponse>> handler)
+        where TRequest : IMessage<TRequest>
+        where TResponse : IMessage<TResponse>
+    {
+        return endpoints.MapGrpcUnary(pattern, async (context, payload) =>
+        {
+            var request = requestParser.ParseFrom(payload.ToArray());
+            var response = await handler(context, request);
+            return response.ToByteArray();
+        });
+    }
+
     public static IEndpointRouteBuilder MapGrpcUnary(
         this IEndpointRouteBuilder endpoints,
         string pattern,

@@ -1,8 +1,16 @@
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Google.Protobuf.WellKnownTypes;
 using MyNotes.Controllers;
 using MyNotes.Config;
 using MyNotes.Middleware;
 using MyNotes.Services;
+using HomeGetRequest = App.Protobuf.Home.GetHomeRequest;
+using LiveSaveSettingRequest = App.Protobuf.Live.SaveSettingRequest;
+using MasterdataVersionRequest = App.Protobuf.Masterdata.VersionRequest;
+using PlayerEditProfileRequest = App.Protobuf.Player.EditProfileRequest;
+using PlayerEditProfileResponse = App.Protobuf.Player.EditProfileResponse;
+using PlayerGetDataRequest = App.Protobuf.Player.GetPlayerDataRequest;
+using PlayerRegisterRequest = App.Protobuf.Player.RegisterRequest;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,6 +42,10 @@ builder.Services.AddSingleton<PlayerManager>();
 builder.Services.AddSingleton<MasterDataService>();
 builder.Services.AddSingleton<HomeSnapshotService>();
 builder.Services.AddSingleton<StaticAssetService>();
+builder.Services.AddSingleton<MasterdataProtocolBuilder>();
+builder.Services.AddSingleton<PlayerProtocolBuilder>();
+builder.Services.AddSingleton<HomeProtocolBuilder>();
+builder.Services.AddSingleton<LiveProtocolBuilder>();
 
 var app = builder.Build();
 var appLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("MyNotes");
@@ -70,62 +82,76 @@ app.UseExceptionHandler(handler => handler.Run(async ctx =>
 app.UseRouting();
 app.UseMiddleware<RequestLoggingScopeMiddleware>();
 
-app.MapGrpcUnary("/app.masterdata.MasterdataService/Version",
-    async (ctx, _) =>
+app.MapGrpcUnary(
+    "/app.masterdata.MasterdataService/Version",
+    MasterdataVersionRequest.Parser,
+    (ctx, _) =>
     {
-        var master = ctx.RequestServices.GetRequiredService<MasterDataService>();
-        return MyNotesProtobuf.VersionResponse(master.Version);
+        var protocol = ctx.RequestServices.GetRequiredService<MasterdataProtocolBuilder>();
+        return Task.FromResult(protocol.Version());
     });
 
-app.MapGrpcUnary("/app.player.PlayerService/Register",
-    async (ctx, payload) =>
+app.MapGrpcUnary(
+    "/app.player.PlayerService/Register",
+    PlayerRegisterRequest.Parser,
+    (ctx, request) =>
     {
         var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
-        var request = MyNotesProtobuf.ParseRegisterRequest(payload);
+        var protocol = ctx.RequestServices.GetRequiredService<PlayerProtocolBuilder>();
         var player = players.Register(request.InitialDataGroup);
-        return MyNotesProtobuf.RegisterResponse(player);
+        return Task.FromResult(protocol.Register(player));
     });
 
-app.MapGrpcUnary("/app.player.PlayerService/GetPlayerData",
-    async (ctx, _) =>
+app.MapGrpcUnary(
+    "/app.player.PlayerService/GetPlayerData",
+    PlayerGetDataRequest.Parser,
+    (ctx, _) =>
     {
         var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
-        var master = ctx.RequestServices.GetRequiredService<MasterDataService>();
+        var protocol = ctx.RequestServices.GetRequiredService<PlayerProtocolBuilder>();
         var player = players.GetFromRequest(ctx.Request);
-        return MyNotesProtobuf.GetPlayerDataResponse(player, master);
+        return Task.FromResult(protocol.GetPlayerData(player));
     });
 
-app.MapGrpcUnary("/app.player.PlayerService/EditProfile",
-    async (ctx, payload) =>
+app.MapGrpcUnary(
+    "/app.player.PlayerService/EditProfile",
+    PlayerEditProfileRequest.Parser,
+    (ctx, request) =>
     {
         var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
         var player = players.GetFromRequest(ctx.Request);
-        var displayName = MyNotesProtobuf.ParseEditProfileName(payload);
-        players.UpdateDisplayName(player, displayName);
-        return MyNotesProtobuf.EmptyResponse();
+        players.UpdateDisplayName(player, request.Name);
+        return Task.FromResult(new PlayerEditProfileResponse());
     });
 
-app.MapGrpcUnary("/app.home.HomeService/Get",
-    async (ctx, _) =>
+app.MapGrpcUnary(
+    "/app.home.HomeService/Get",
+    HomeGetRequest.Parser,
+    (ctx, _) =>
     {
         var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
         var home = ctx.RequestServices.GetRequiredService<HomeSnapshotService>();
+        var protocol = ctx.RequestServices.GetRequiredService<HomeProtocolBuilder>();
         var player = players.GetFromRequest(ctx.Request);
-        return MyNotesProtobuf.GetHomeResponse(home.GetFor(player));
+        return Task.FromResult(protocol.Get(home.GetFor(player)));
     });
 
-app.MapGrpcUnary("/app.live.LiveService/SaveSetting",
-    async (ctx, payload) =>
+app.MapGrpcUnary(
+    "/app.live.LiveService/SaveSetting",
+    LiveSaveSettingRequest.Parser,
+    (ctx, request) =>
     {
         var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        var protocol = ctx.RequestServices.GetRequiredService<LiveProtocolBuilder>();
         var player = players.GetFromRequest(ctx.Request);
-        var settingAll = MyNotesProtobuf.ParseSaveSettingAll(payload);
-        players.UpdateLiveSetting(player, settingAll);
-        return MyNotesProtobuf.EmptyResponse();
+        players.UpdateLiveSetting(player, request.SettingAll.ToByteArray());
+        return Task.FromResult(protocol.SaveSetting());
     });
 
-app.MapGrpcUnary("/app.external_payments.ExternalPaymentsService/Nop",
-    async (_, _) => MyNotesProtobuf.EmptyResponse());
+app.MapGrpcUnary(
+    "/app.external_payments.ExternalPaymentsService/Nop",
+    Empty.Parser,
+    static (_, _) => Task.FromResult(new Empty()));
 
 app.MapStaticAssetEndpoints();
 
