@@ -12,6 +12,8 @@ using ContentUnlockShownRequest = App.Protobuf.ContentUnlock.ShownRequest;
 using ContentUnlockShownResponse = App.Protobuf.ContentUnlock.ShownResponse;
 using HomeGetRequest = App.Protobuf.Home.GetHomeRequest;
 using LiveSaveSettingRequest = App.Protobuf.Live.SaveSettingRequest;
+using LiveStartFreeRequest = App.Protobuf.Live.StartFreeRequest;
+using LiveStartFreeResponse = App.Protobuf.Live.StartFreeResponse;
 using MasterdataVersionRequest = App.Protobuf.Masterdata.VersionRequest;
 using MissionFetchRequest = App.Protobuf.Present.FetchMissionRequest;
 using MissionFetchResponse = App.Protobuf.Present.FetchMissionResponse;
@@ -196,6 +198,11 @@ app.MapGrpcUnary(
         players.SaveShownContentUnlocks(player, request.MasterIds);
         return Task.FromResult(new ContentUnlockShownResponse());
     });
+
+app.MapGrpcUnary(
+    "/app.live.LiveService/StartFree",
+    LiveStartFreeRequest.Parser,
+    static (_, _) => Task.FromResult(new LiveStartFreeResponse()));
 
 app.MapGrpcUnary(
     "/app.live.LiveService/SaveSetting",
