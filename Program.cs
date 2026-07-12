@@ -11,6 +11,8 @@ using CarouselHelpShownResponse = App.Protobuf.CarouselHelp.ShownResponse;
 using ContentUnlockShownRequest = App.Protobuf.ContentUnlock.ShownRequest;
 using ContentUnlockShownResponse = App.Protobuf.ContentUnlock.ShownResponse;
 using HomeGetRequest = App.Protobuf.Home.GetHomeRequest;
+using LiveFinishFreeRequest = App.Protobuf.Live.FinishFreeRequest;
+using LiveFinishFreeResponse = App.Protobuf.Live.FinishFreeResponse;
 using LiveSaveSettingRequest = App.Protobuf.Live.SaveSettingRequest;
 using LiveStartFreeRequest = App.Protobuf.Live.StartFreeRequest;
 using LiveStartFreeResponse = App.Protobuf.Live.StartFreeResponse;
@@ -203,6 +205,11 @@ app.MapGrpcUnary(
     "/app.live.LiveService/StartFree",
     LiveStartFreeRequest.Parser,
     static (_, _) => Task.FromResult(new LiveStartFreeResponse()));
+
+app.MapGrpcUnary(
+    "/app.live.LiveService/FinishFree",
+    LiveFinishFreeRequest.Parser,
+    static (_, _) => Task.FromResult(new LiveFinishFreeResponse()));
 
 app.MapGrpcUnary(
     "/app.live.LiveService/SaveSetting",
