@@ -14,6 +14,8 @@ using HomeGetRequest = App.Protobuf.Home.GetHomeRequest;
 using LiveFinishFreeRequest = App.Protobuf.Live.FinishFreeRequest;
 using LiveFinishFreeResponse = App.Protobuf.Live.FinishFreeResponse;
 using LiveSaveSettingRequest = App.Protobuf.Live.SaveSettingRequest;
+using LiveSkipFreeRequest = App.Protobuf.Live.SkipFreeRequest;
+using LiveSkipFreeResponse = App.Protobuf.Live.SkipFreeResponse;
 using LiveStartFreeRequest = App.Protobuf.Live.StartFreeRequest;
 using LiveStartFreeResponse = App.Protobuf.Live.StartFreeResponse;
 using MasterdataVersionRequest = App.Protobuf.Masterdata.VersionRequest;
@@ -210,6 +212,11 @@ app.MapGrpcUnary(
     "/app.live.LiveService/FinishFree",
     LiveFinishFreeRequest.Parser,
     static (_, _) => Task.FromResult(new LiveFinishFreeResponse()));
+
+app.MapGrpcUnary(
+    "/app.live.LiveService/SkipFree",
+    LiveSkipFreeRequest.Parser,
+    static (_, _) => Task.FromResult(new LiveSkipFreeResponse()));
 
 app.MapGrpcUnary(
     "/app.live.LiveService/SaveSetting",
