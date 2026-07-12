@@ -10,6 +10,8 @@ using CarouselHelpShownRequest = App.Protobuf.CarouselHelp.ShownRequest;
 using CarouselHelpShownResponse = App.Protobuf.CarouselHelp.ShownResponse;
 using ContentUnlockShownRequest = App.Protobuf.ContentUnlock.ShownRequest;
 using ContentUnlockShownResponse = App.Protobuf.ContentUnlock.ShownResponse;
+using DeckSaveDecksRequest = App.Protobuf.Deck.SaveDecksRequest;
+using DeckSaveDecksResponse = App.Protobuf.Deck.SaveDecksResponse;
 using HomeGetRequest = App.Protobuf.Home.GetHomeRequest;
 using LiveFinishFreeRequest = App.Protobuf.Live.FinishFreeRequest;
 using LiveFinishFreeResponse = App.Protobuf.Live.FinishFreeResponse;
@@ -162,6 +164,17 @@ app.MapGrpcUnary(
         var player = players.GetFromRequest(ctx.Request);
         players.UpdateFavoriteMember(player, request.MemberId);
         return Task.FromResult(new PlayerChangeFavoriteMemberResponse());
+    });
+
+app.MapGrpcUnary(
+    "/app.deck.DeckService/SaveDecks",
+    DeckSaveDecksRequest.Parser,
+    (ctx, request) =>
+    {
+        var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        var player = players.GetFromRequest(ctx.Request);
+        players.SaveDecks(player, request.Decks, request.MainDeck);
+        return Task.FromResult(new DeckSaveDecksResponse());
     });
 
 app.MapGrpcUnary(

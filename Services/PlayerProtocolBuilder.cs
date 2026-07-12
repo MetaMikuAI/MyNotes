@@ -8,6 +8,8 @@ namespace MyNotes.Services;
 public sealed class PlayerProtocolBuilder(MasterDataService master)
 {
     private static readonly long[] InitialCharacterIds = [1, 2, 3, 4, 5];
+    private const int LeaderSlotIndex = 2;
+    private const int ProjectedDeckTotalPower = 1000;
 
     public RegisterResponse Register(PlayerRecord player) => new()
     {
@@ -32,10 +34,11 @@ public sealed class PlayerProtocolBuilder(MasterDataService master)
     private PlayerData BuildPlayerData(PlayerRecord player)
     {
         var initialData = master.GetInitialPlayerData(player.InitialDataGroup);
-        var mainDeck = initialData.Decks.FirstOrDefault();
+        var (decks, mainDeckId) = BuildDeckState(player, initialData);
+        var mainDeck = decks.FirstOrDefault(deck => deck.Id == mainDeckId);
         var data = new PlayerData
         {
-            MainDeck = mainDeck?.Id ?? 1,
+            MainDeck = mainDeckId,
             Gem = new Gem
             {
                 Free = 10000,
@@ -68,8 +71,8 @@ public sealed class PlayerProtocolBuilder(MasterDataService master)
         for (var i = 0; i < initialData.SupportCards.Count; i++)
             data.SupportCards.Add(BuildSupportCard(i + 1, initialData.SupportCards[i], player.CreatedAt));
 
-        foreach (var deck in initialData.Decks)
-            data.Decks.Add(BuildDeck(deck));
+        foreach (var deck in decks)
+            data.Decks.Add(deck.Clone());
 
         foreach (var score in master.LiveScoreSeeds)
         {
@@ -121,7 +124,7 @@ public sealed class PlayerProtocolBuilder(MasterDataService master)
     private static PlayerSimpleProfile BuildSimpleProfile(
         PlayerRecord player,
         InitialPlayerData initialData,
-        InitialDeckSeed? mainDeck)
+        Deck? mainDeck)
     {
         var profile = new PlayerSimpleProfile
         {
@@ -134,7 +137,7 @@ public sealed class PlayerProtocolBuilder(MasterDataService master)
         var requestedMemberCardId = player.FavoriteMemberCardId;
         var displayMemberCardId = requestedMemberCardId > 0
             ? requestedMemberCardId
-            : mainDeck?.MemberCardIds.FirstOrDefault() ?? 0;
+            : mainDeck?.Cards.FirstOrDefault(card => card.SlotIndex == LeaderSlotIndex)?.MemberCardId ?? 0;
         if (displayMemberCardId < 1 || displayMemberCardId > initialData.MemberCards.Count)
             displayMemberCardId = initialData.MemberCards.Count > 0 ? 1 : 0;
 
@@ -204,11 +207,56 @@ public sealed class PlayerProtocolBuilder(MasterDataService master)
             });
         }
 
-        if (cardCount > 0)
-            result.TotalPower = 1000;
+        result.TotalPower = DeriveTotalPower(cardCount);
 
         return result;
     }
+
+    private static (IReadOnlyList<Deck> Decks, int MainDeckId) BuildDeckState(
+        PlayerRecord player,
+        InitialPlayerData initialData)
+    {
+        Dictionary<int, Deck> overrides;
+        int mainDeckOverride;
+
+        lock (player.DeckStateLock)
+        {
+            overrides = player.DeckOverrides.ToDictionary(pair => pair.Key, pair => pair.Value.Clone());
+            mainDeckOverride = player.MainDeckOverride;
+        }
+
+        var decks = initialData.Decks.Select(BuildDeck).ToList();
+        var indices = new Dictionary<int, int>();
+        for (var i = 0; i < decks.Count; i++)
+            indices.TryAdd(decks[i].Id, i);
+
+        foreach (var (id, state) in overrides.OrderBy(pair => pair.Key))
+        {
+            var projection = BuildSavedDeck(state);
+            if (indices.TryGetValue(id, out var index))
+            {
+                decks[index] = projection;
+            }
+            else
+            {
+                indices[id] = decks.Count;
+                decks.Add(projection);
+            }
+        }
+
+        var initialMainDeckId = initialData.Decks.FirstOrDefault()?.Id ?? 1;
+        return (decks, mainDeckOverride != 0 ? mainDeckOverride : initialMainDeckId);
+    }
+
+    private static Deck BuildSavedDeck(Deck state)
+    {
+        var result = state.Clone();
+        result.TotalPower = DeriveTotalPower(result.Cards.Count);
+        return result;
+    }
+
+    // The client omits totalPower when saving; keep it as a server-owned projection.
+    private static int DeriveTotalPower(int cardCount) => cardCount > 0 ? ProjectedDeckTotalPower : 0;
 
     private static long UnixSeconds(DateTimeOffset value) => value.ToUnixTimeSeconds();
 }

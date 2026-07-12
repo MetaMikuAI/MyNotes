@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
+using App.Protobuf.Entity;
 using MyNotes.Config;
 using MyNotes.Models;
 
@@ -60,6 +61,26 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
             "Updated player {PlayerId} favorite member card to {MemberCardId}",
             player.PlayerId,
             memberCardId);
+    }
+
+    public void SaveDecks(PlayerRecord player, IEnumerable<Deck> decks, int mainDeck)
+    {
+        var deckPatches = decks.Select(CloneDeckState).ToArray();
+
+        lock (player.DeckStateLock)
+        {
+            foreach (var deck in deckPatches)
+                player.DeckOverrides[deck.Id] = deck;
+
+            if (mainDeck != 0)
+                player.MainDeckOverride = mainDeck;
+        }
+
+        logger.LogInformation(
+            "Updated player {PlayerId} decks ({DeckCount} patches, main deck {MainDeck})",
+            player.PlayerId,
+            deckPatches.Length,
+            mainDeck);
     }
 
     public void SaveShownCarouselHelps(PlayerRecord player, IEnumerable<long> masterIds)
@@ -128,6 +149,20 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
 
     private static string StripBearerPrefix(string value) =>
         value.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) ? value[7..] : value;
+
+    private static Deck CloneDeckState(Deck source)
+    {
+        var result = new Deck
+        {
+            Id = source.Id,
+            Name = source.Name
+        };
+
+        foreach (var card in source.Cards)
+            result.Cards.Add(card.Clone());
+
+        return result;
+    }
 
     private static string NewToken(int bytes)
     {

@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using App.Protobuf.Entity;
 
 namespace MyNotes.Models;
 
@@ -12,6 +13,9 @@ public sealed class PlayerRecord
     public string InitialDataGroup { get; init; } = "";
     public long FavoriteMemberCardId { get; set; }
     public byte[] LiveSettingAll { get; set; } = [];
+    internal object DeckStateLock { get; } = new();
+    internal Dictionary<int, Deck> DeckOverrides { get; } = [];
+    internal int MainDeckOverride { get; set; }
     public ConcurrentDictionary<long, byte> ShownCarouselHelpIds { get; } = new();
     public ConcurrentDictionary<long, byte> ShownContentUnlockIds { get; } = new();
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
