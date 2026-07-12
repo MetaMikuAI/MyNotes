@@ -32,9 +32,10 @@ public sealed class PlayerProtocolBuilder(MasterDataService master)
     private PlayerData BuildPlayerData(PlayerRecord player)
     {
         var initialData = master.GetInitialPlayerData(player.InitialDataGroup);
+        var mainDeck = initialData.Decks.FirstOrDefault();
         var data = new PlayerData
         {
-            MainDeck = initialData.Decks.FirstOrDefault()?.Id ?? 1,
+            MainDeck = mainDeck?.Id ?? 1,
             Gem = new Gem
             {
                 Free = 10000,
@@ -56,13 +57,7 @@ public sealed class PlayerProtocolBuilder(MasterDataService master)
                         ? LiveSettingCodec.NormalizeLiveSettingAll(player.LiveSettingAll)
                         : LiveSettingCodec.CreateDefaultLiveSettingAll())
             },
-            MyProfile = new PlayerSimpleProfile
-            {
-                Id = player.PlayerId,
-                Name = player.DisplayName,
-                LastUpdatedAt = UnixSeconds(player.CreatedAt),
-                ProfileId = player.ProfileId
-            },
+            MyProfile = BuildSimpleProfile(player, initialData, mainDeck),
             LiveStampReward = new LiveStampReward(),
             Comeback = new Comeback()
         };
@@ -123,6 +118,37 @@ public sealed class PlayerProtocolBuilder(MasterDataService master)
         return data;
     }
 
+    private static PlayerSimpleProfile BuildSimpleProfile(
+        PlayerRecord player,
+        InitialPlayerData initialData,
+        InitialDeckSeed? mainDeck)
+    {
+        var profile = new PlayerSimpleProfile
+        {
+            Id = player.PlayerId,
+            Name = player.DisplayName,
+            LastUpdatedAt = UnixSeconds(player.CreatedAt),
+            ProfileId = player.ProfileId
+        };
+
+        var requestedMemberCardId = player.FavoriteMemberCardId;
+        var displayMemberCardId = requestedMemberCardId > 0
+            ? requestedMemberCardId
+            : mainDeck?.MemberCardIds.FirstOrDefault() ?? 0;
+        if (displayMemberCardId < 1 || displayMemberCardId > initialData.MemberCards.Count)
+            displayMemberCardId = initialData.MemberCards.Count > 0 ? 1 : 0;
+
+        if (displayMemberCardId > 0)
+        {
+            var seed = initialData.MemberCards[(int)displayMemberCardId - 1];
+            profile.FavoriteMemberCard = BuildDeckMemberCardDetail(seed);
+            if (requestedMemberCardId > 0 && requestedMemberCardId <= initialData.MemberCards.Count)
+                profile.FavoriteMemberCardMasterId = requestedMemberCardId;
+        }
+
+        return profile;
+    }
+
     private static MemberCard BuildMemberCard(int id, InitialMemberCardSeed seed, DateTimeOffset gainAt) => new()
     {
         Id = id,
@@ -136,6 +162,16 @@ public sealed class PlayerProtocolBuilder(MasterDataService master)
         GainAt = UnixSeconds(gainAt),
         LinkSkillLevel = seed.LinkSkillLevel,
         GekisouSkillLevel = seed.GekisouSkillLevel
+    };
+
+    private static DeckMemberCardDetail BuildDeckMemberCardDetail(InitialMemberCardSeed seed) => new()
+    {
+        CardId = seed.MasterId,
+        Exp = seed.Exp,
+        AwakeCount = seed.AwakeCount,
+        CardRank = seed.CardRank,
+        LiveSkillLevel = seed.LiveSkillLevel,
+        PerformanceSkillLevel = seed.PerformanceSkillLevel
     };
 
     private static SupportCard BuildSupportCard(int id, InitialSupportCardSeed seed, DateTimeOffset gainAt) => new()

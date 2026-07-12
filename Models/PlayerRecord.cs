@@ -10,6 +10,7 @@ public sealed class PlayerRecord
     public string AuthorizationKey { get; init; } = "";
     public string DeviceId { get; init; } = "";
     public string InitialDataGroup { get; init; } = "";
+    public long FavoriteMemberCardId { get; set; }
     public byte[] LiveSettingAll { get; set; } = [];
     public ConcurrentDictionary<long, byte> ShownCarouselHelpIds { get; } = new();
     public ConcurrentDictionary<long, byte> ShownContentUnlockIds { get; } = new();

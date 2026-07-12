@@ -25,6 +25,8 @@ using MissionFetchRequest = App.Protobuf.Present.FetchMissionRequest;
 using MissionFetchResponse = App.Protobuf.Present.FetchMissionResponse;
 using PlayerCheckNgWordRequest = App.Protobuf.Player.CheckNgWordRequest;
 using PlayerCheckNgWordResponse = App.Protobuf.Player.CheckNgWordResponse;
+using PlayerChangeFavoriteMemberRequest = App.Protobuf.Player.ChangeFavoriteMemberRequest;
+using PlayerChangeFavoriteMemberResponse = App.Protobuf.Player.ChangeFavoriteMemberResponse;
 using PlayerEditProfileRequest = App.Protobuf.Player.EditProfileRequest;
 using PlayerEditProfileResponse = App.Protobuf.Player.EditProfileResponse;
 using PlayerGetDataRequest = App.Protobuf.Player.GetPlayerDataRequest;
@@ -149,6 +151,17 @@ app.MapGrpcUnary(
         var player = players.GetFromRequest(ctx.Request);
         players.UpdateDisplayName(player, request.Name);
         return Task.FromResult(new PlayerEditProfileResponse());
+    });
+
+app.MapGrpcUnary(
+    "/app.player.PlayerService/ChangeFavoriteMember",
+    PlayerChangeFavoriteMemberRequest.Parser,
+    (ctx, request) =>
+    {
+        var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        var player = players.GetFromRequest(ctx.Request);
+        players.UpdateFavoriteMember(player, request.MemberId);
+        return Task.FromResult(new PlayerChangeFavoriteMemberResponse());
     });
 
 app.MapGrpcUnary(

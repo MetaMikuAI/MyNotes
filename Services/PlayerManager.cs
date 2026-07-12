@@ -53,6 +53,15 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
         logger.LogInformation("Updated player {PlayerId} live setting ({ByteCount} bytes)", player.PlayerId, settingAll.Length);
     }
 
+    public void UpdateFavoriteMember(PlayerRecord player, long memberCardId)
+    {
+        player.FavoriteMemberCardId = memberCardId;
+        logger.LogInformation(
+            "Updated player {PlayerId} favorite member card to {MemberCardId}",
+            player.PlayerId,
+            memberCardId);
+    }
+
     public void SaveShownCarouselHelps(PlayerRecord player, IEnumerable<long> masterIds)
     {
         foreach (var masterId in masterIds)
