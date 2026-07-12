@@ -13,6 +13,8 @@ using ContentUnlockShownResponse = App.Protobuf.ContentUnlock.ShownResponse;
 using HomeGetRequest = App.Protobuf.Home.GetHomeRequest;
 using LiveFinishFreeRequest = App.Protobuf.Live.FinishFreeRequest;
 using LiveFinishFreeResponse = App.Protobuf.Live.FinishFreeResponse;
+using LiveMusicGetRankingRequest = App.Protobuf.LiveMusic.GetRankingRequest;
+using LiveMusicGetRankingResponse = App.Protobuf.LiveMusic.GetRankingResponse;
 using LiveSaveSettingRequest = App.Protobuf.Live.SaveSettingRequest;
 using LiveSkipFreeRequest = App.Protobuf.Live.SkipFreeRequest;
 using LiveSkipFreeResponse = App.Protobuf.Live.SkipFreeResponse;
@@ -229,6 +231,11 @@ app.MapGrpcUnary(
         players.UpdateLiveSetting(player, request.SettingAll.ToByteArray());
         return Task.FromResult(protocol.SaveSetting());
     });
+
+app.MapGrpcUnary(
+    "/app.livemusic.LiveMusicService/GetRanking",
+    LiveMusicGetRankingRequest.Parser,
+    static (_, _) => Task.FromResult(new LiveMusicGetRankingResponse()));
 
 app.MapGrpcUnary(
     "/app.external_payments.ExternalPaymentsService/Nop",
