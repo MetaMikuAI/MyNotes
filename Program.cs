@@ -37,6 +37,8 @@ using PresentFetchRequest = App.Protobuf.Present.FetchRequest;
 using PresentFetchResponse = App.Protobuf.Present.FetchResponse;
 using PresentHistoryRequest = App.Protobuf.Present.HistoryRequest;
 using PresentHistoryResponse = App.Protobuf.Present.HistoryResponse;
+using StoryCheckMaintenanceRequest = App.Protobuf.Story.CheckMaintenanceStoryRequest;
+using StoryCheckMaintenanceResponse = App.Protobuf.Story.CheckMaintenanceStoryResponse;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -262,6 +264,11 @@ app.MapGrpcUnary(
     "/app.livemusic.LiveMusicService/GetRanking",
     LiveMusicGetRankingRequest.Parser,
     static (_, _) => Task.FromResult(new LiveMusicGetRankingResponse()));
+
+app.MapGrpcUnary(
+    "/app.story.StoryService/CheckMaintenanceStory",
+    StoryCheckMaintenanceRequest.Parser,
+    static (_, _) => Task.FromResult(new StoryCheckMaintenanceResponse()));
 
 app.MapGrpcUnary(
     "/app.external_payments.ExternalPaymentsService/Nop",
