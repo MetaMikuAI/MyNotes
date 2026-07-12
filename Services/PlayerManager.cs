@@ -64,6 +64,17 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
             player.ShownCarouselHelpIds.Count);
     }
 
+    public void SaveShownContentUnlocks(PlayerRecord player, IEnumerable<long> masterIds)
+    {
+        foreach (var masterId in masterIds)
+            player.ShownContentUnlockIds.TryAdd(masterId, 0);
+
+        logger.LogInformation(
+            "Updated player {PlayerId} shown content unlocks ({Count} ids)",
+            player.PlayerId,
+            player.ShownContentUnlockIds.Count);
+    }
+
     public bool IsKnownCredential(HttpRequest request)
     {
         if (TryGetFromRequest(request, out _))

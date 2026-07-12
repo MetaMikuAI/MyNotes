@@ -12,5 +12,6 @@ public sealed class PlayerRecord
     public string InitialDataGroup { get; init; } = "";
     public byte[] LiveSettingAll { get; set; } = [];
     public ConcurrentDictionary<long, byte> ShownCarouselHelpIds { get; } = new();
+    public ConcurrentDictionary<long, byte> ShownContentUnlockIds { get; } = new();
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
 }
