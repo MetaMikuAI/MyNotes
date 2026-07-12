@@ -114,6 +114,9 @@ public sealed class PlayerProtocolBuilder(MasterDataService master)
             }
         }
 
+        foreach (var masterId in player.ShownCarouselHelpIds.Keys.Order())
+            data.ShownCarouselHelps.Add(new CarouselHelp { MasterId = masterId });
+
         return data;
     }
 

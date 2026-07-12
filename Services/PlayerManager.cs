@@ -53,6 +53,17 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
         logger.LogInformation("Updated player {PlayerId} live setting ({ByteCount} bytes)", player.PlayerId, settingAll.Length);
     }
 
+    public void SaveShownCarouselHelps(PlayerRecord player, IEnumerable<long> masterIds)
+    {
+        foreach (var masterId in masterIds)
+            player.ShownCarouselHelpIds.TryAdd(masterId, 0);
+
+        logger.LogInformation(
+            "Updated player {PlayerId} shown carousel helps ({Count} ids)",
+            player.PlayerId,
+            player.ShownCarouselHelpIds.Count);
+    }
+
     public bool IsKnownCredential(HttpRequest request)
     {
         if (TryGetFromRequest(request, out _))

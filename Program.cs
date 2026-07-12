@@ -6,6 +6,8 @@ using MyNotes.Middleware;
 using MyNotes.Services;
 using AnnouncementGetListRequest = App.Protobuf.Announcement.GetListRequest;
 using AnnouncementGetListResponse = App.Protobuf.Announcement.GetListResponse;
+using CarouselHelpShownRequest = App.Protobuf.CarouselHelp.ShownRequest;
+using CarouselHelpShownResponse = App.Protobuf.CarouselHelp.ShownResponse;
 using HomeGetRequest = App.Protobuf.Home.GetHomeRequest;
 using LiveSaveSettingRequest = App.Protobuf.Live.SaveSettingRequest;
 using MasterdataVersionRequest = App.Protobuf.Masterdata.VersionRequest;
@@ -170,6 +172,17 @@ app.MapGrpcUnary(
     "/app.announcement.AnnouncementService/GetList",
     AnnouncementGetListRequest.Parser,
     static (_, _) => Task.FromResult(new AnnouncementGetListResponse()));
+
+app.MapGrpcUnary(
+    "/app.carousel_help.CarouselHelpService/Shown",
+    CarouselHelpShownRequest.Parser,
+    (ctx, request) =>
+    {
+        var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        var player = players.GetFromRequest(ctx.Request);
+        players.SaveShownCarouselHelps(player, request.MasterIds);
+        return Task.FromResult(new CarouselHelpShownResponse());
+    });
 
 app.MapGrpcUnary(
     "/app.live.LiveService/SaveSetting",
