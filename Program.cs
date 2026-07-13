@@ -263,6 +263,11 @@ app.MapGrpcUnary(
     });
 
 app.MapGrpcUnary(
+    "/app.shop.ShopService/History",
+    Protocol.Shop.HistoryRequest.Parser,
+    static (_, _) => Task.FromResult(new Protocol.Shop.HistoryResponse()));
+
+app.MapGrpcUnary(
     "/app.story.StoryService/CheckMaintenanceStory",
     Protocol.Story.CheckMaintenanceStoryRequest.Parser,
     static (_, _) => Task.FromResult(new Protocol.Story.CheckMaintenanceStoryResponse()));
