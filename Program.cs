@@ -237,6 +237,11 @@ app.MapGrpcUnary(
     static (_, _) => Task.FromResult(new Protocol.Shop.CheckMaintenanceShopResponse()));
 
 app.MapGrpcUnary(
+    "/app.shop.ShopService/Fetch",
+    Protocol.Shop.FetchRequest.Parser,
+    static (_, _) => Task.FromResult(new Protocol.Shop.FetchResponse()));
+
+app.MapGrpcUnary(
     "/app.story.StoryService/CheckMaintenanceStory",
     Protocol.Story.CheckMaintenanceStoryRequest.Parser,
     static (_, _) => Task.FromResult(new Protocol.Story.CheckMaintenanceStoryResponse()));
