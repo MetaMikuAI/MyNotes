@@ -37,6 +37,8 @@ using PresentFetchRequest = App.Protobuf.Present.FetchRequest;
 using PresentFetchResponse = App.Protobuf.Present.FetchResponse;
 using PresentHistoryRequest = App.Protobuf.Present.HistoryRequest;
 using PresentHistoryResponse = App.Protobuf.Present.HistoryResponse;
+using ShopCheckMaintenanceRequest = App.Protobuf.Shop.CheckMaintenanceShopRequest;
+using ShopCheckMaintenanceResponse = App.Protobuf.Shop.CheckMaintenanceShopResponse;
 using StoryCheckMaintenanceRequest = App.Protobuf.Story.CheckMaintenanceStoryRequest;
 using StoryCheckMaintenanceResponse = App.Protobuf.Story.CheckMaintenanceStoryResponse;
 using StoryReadFriendshipEpisodeRequest = App.Protobuf.Story.ReadFriendshipEpisodeRequest;
@@ -268,6 +270,11 @@ app.MapGrpcUnary(
     "/app.livemusic.LiveMusicService/GetRanking",
     LiveMusicGetRankingRequest.Parser,
     static (_, _) => Task.FromResult(new LiveMusicGetRankingResponse()));
+
+app.MapGrpcUnary(
+    "/app.shop.ShopService/CheckMaintenanceShop",
+    ShopCheckMaintenanceRequest.Parser,
+    static (_, _) => Task.FromResult(new ShopCheckMaintenanceResponse()));
 
 app.MapGrpcUnary(
     "/app.story.StoryService/CheckMaintenanceStory",
