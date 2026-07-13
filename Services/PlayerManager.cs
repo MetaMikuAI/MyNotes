@@ -102,6 +102,25 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
             isSkipped);
     }
 
+    public void ReadFriendshipEpisode(PlayerRecord player, long episodeId, bool isSkipped)
+    {
+        var episode = new StoryEpisode
+        {
+            EpisodeId = episodeId,
+            IsSkipped = isSkipped,
+            LastReadAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
+        };
+
+        lock (player.StoryStateLock)
+            player.SeenStoryFriendshipEpisodes[episodeId] = episode;
+
+        logger.LogInformation(
+            "Updated player {PlayerId} friendship story episode {EpisodeId} (skipped: {IsSkipped})",
+            player.PlayerId,
+            episodeId,
+            isSkipped);
+    }
+
     public void SaveShownCarouselHelps(PlayerRecord player, IEnumerable<long> masterIds)
     {
         foreach (var masterId in masterIds)

@@ -113,15 +113,22 @@ public sealed class PlayerProtocolBuilder(MasterDataService master)
         }
 
         StoryEpisode[] seenStoryEpisodes;
+        StoryEpisode[] seenStoryFriendshipEpisodes;
         lock (player.StoryStateLock)
         {
             seenStoryEpisodes = player.SeenStoryEpisodes.Values
                 .OrderBy(episode => episode.EpisodeId)
                 .Select(episode => episode.Clone())
                 .ToArray();
+
+            seenStoryFriendshipEpisodes = player.SeenStoryFriendshipEpisodes.Values
+                .OrderBy(episode => episode.EpisodeId)
+                .Select(episode => episode.Clone())
+                .ToArray();
         }
 
         data.SeenStoryEpisodes.Add(seenStoryEpisodes);
+        data.SeenStoryFriendshipEpisodes.Add(seenStoryFriendshipEpisodes);
 
         foreach (var masterId in player.ShownCarouselHelpIds.Keys.Order())
             data.ShownCarouselHelps.Add(new CarouselHelp { MasterId = masterId });

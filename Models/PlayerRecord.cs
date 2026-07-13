@@ -18,6 +18,7 @@ public sealed class PlayerRecord
     internal int MainDeckOverride { get; set; }
     internal object StoryStateLock { get; } = new();
     internal Dictionary<long, StoryEpisode> SeenStoryEpisodes { get; } = [];
+    internal Dictionary<long, StoryEpisode> SeenStoryFriendshipEpisodes { get; } = [];
     public ConcurrentDictionary<long, byte> ShownCarouselHelpIds { get; } = new();
     public ConcurrentDictionary<long, byte> ShownContentUnlockIds { get; } = new();
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;

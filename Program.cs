@@ -39,6 +39,8 @@ using PresentHistoryRequest = App.Protobuf.Present.HistoryRequest;
 using PresentHistoryResponse = App.Protobuf.Present.HistoryResponse;
 using StoryCheckMaintenanceRequest = App.Protobuf.Story.CheckMaintenanceStoryRequest;
 using StoryCheckMaintenanceResponse = App.Protobuf.Story.CheckMaintenanceStoryResponse;
+using StoryReadFriendshipEpisodeRequest = App.Protobuf.Story.ReadFriendshipEpisodeRequest;
+using StoryReadFriendshipEpisodeResponse = App.Protobuf.Story.ReadFriendshipEpisodeResponse;
 using StoryReadEpisodeRequest = App.Protobuf.Story.ReadStoryEpisodeRequest;
 using StoryReadEpisodeResponse = App.Protobuf.Story.ReadStoryEpisodeResponse;
 
@@ -281,6 +283,17 @@ app.MapGrpcUnary(
         var player = players.GetFromRequest(ctx.Request);
         players.ReadStoryEpisode(player, request.EpisodeId, request.IsSkipped);
         return Task.FromResult(new StoryReadEpisodeResponse());
+    });
+
+app.MapGrpcUnary(
+    "/app.story.StoryService/ReadFriendshipEpisode",
+    StoryReadFriendshipEpisodeRequest.Parser,
+    (ctx, request) =>
+    {
+        var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        var player = players.GetFromRequest(ctx.Request);
+        players.ReadFriendshipEpisode(player, request.EpisodeId, request.IsSkipped);
+        return Task.FromResult(new StoryReadFriendshipEpisodeResponse());
     });
 
 app.MapGrpcUnary(
