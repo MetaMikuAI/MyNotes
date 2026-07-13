@@ -121,6 +121,39 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
             isSkipped);
     }
 
+    public void SaveBirth(PlayerRecord player, int year, int month)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var isFutureMonth = year > now.Year || (year == now.Year && month > now.Month);
+        if (year < 1900 || month is < 1 or > 12 || isFutureMonth)
+        {
+            logger.LogWarning(
+                "Ignored invalid birth month {Year}-{Month} for player {PlayerId}",
+                year,
+                month,
+                player.PlayerId);
+            return;
+        }
+
+        lock (player.ShopStateLock)
+        {
+            player.ShopBirthYear = year;
+            player.ShopBirthMonth = month;
+        }
+
+        logger.LogInformation(
+            "Updated player {PlayerId} birth month to {Year}-{Month}",
+            player.PlayerId,
+            year,
+            month);
+    }
+
+    public (int Year, int Month) GetShopBirth(PlayerRecord player)
+    {
+        lock (player.ShopStateLock)
+            return (player.ShopBirthYear, player.ShopBirthMonth);
+    }
+
     public void SaveShownCarouselHelps(PlayerRecord player, IEnumerable<long> masterIds)
     {
         foreach (var masterId in masterIds)

@@ -19,6 +19,9 @@ public sealed class PlayerRecord
     internal object StoryStateLock { get; } = new();
     internal Dictionary<long, StoryEpisode> SeenStoryEpisodes { get; } = [];
     internal Dictionary<long, StoryEpisode> SeenStoryFriendshipEpisodes { get; } = [];
+    internal object ShopStateLock { get; } = new();
+    internal int ShopBirthYear { get; set; }
+    internal int ShopBirthMonth { get; set; }
     public ConcurrentDictionary<long, byte> ShownCarouselHelpIds { get; } = new();
     public ConcurrentDictionary<long, byte> ShownContentUnlockIds { get; } = new();
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;

@@ -239,7 +239,28 @@ app.MapGrpcUnary(
 app.MapGrpcUnary(
     "/app.shop.ShopService/Fetch",
     Protocol.Shop.FetchRequest.Parser,
-    static (_, _) => Task.FromResult(new Protocol.Shop.FetchResponse()));
+    (ctx, _) =>
+    {
+        var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        var player = players.GetFromRequest(ctx.Request);
+        var birth = players.GetShopBirth(player);
+        return Task.FromResult(new Protocol.Shop.FetchResponse
+        {
+            Year = birth.Year,
+            Month = birth.Month
+        });
+    });
+
+app.MapGrpcUnary(
+    "/app.shop.ShopService/SaveBirth",
+    Protocol.Shop.SaveBirthRequest.Parser,
+    (ctx, request) =>
+    {
+        var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        var player = players.GetFromRequest(ctx.Request);
+        players.SaveBirth(player, request.Year, request.Month);
+        return Task.FromResult(new Protocol.Shop.SaveBirthResponse());
+    });
 
 app.MapGrpcUnary(
     "/app.story.StoryService/CheckMaintenanceStory",
