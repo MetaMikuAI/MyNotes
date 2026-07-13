@@ -1,50 +1,10 @@
-using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Google.Protobuf.WellKnownTypes;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using MyNotes.Controllers;
 using MyNotes.Config;
 using MyNotes.Middleware;
 using MyNotes.Services;
-using AnnouncementGetListRequest = App.Protobuf.Announcement.GetListRequest;
-using AnnouncementGetListResponse = App.Protobuf.Announcement.GetListResponse;
-using CarouselHelpShownRequest = App.Protobuf.CarouselHelp.ShownRequest;
-using CarouselHelpShownResponse = App.Protobuf.CarouselHelp.ShownResponse;
-using ContentUnlockShownRequest = App.Protobuf.ContentUnlock.ShownRequest;
-using ContentUnlockShownResponse = App.Protobuf.ContentUnlock.ShownResponse;
-using DeckSaveDecksRequest = App.Protobuf.Deck.SaveDecksRequest;
-using DeckSaveDecksResponse = App.Protobuf.Deck.SaveDecksResponse;
-using HomeGetRequest = App.Protobuf.Home.GetHomeRequest;
-using LiveFinishFreeRequest = App.Protobuf.Live.FinishFreeRequest;
-using LiveFinishFreeResponse = App.Protobuf.Live.FinishFreeResponse;
-using LiveMusicGetRankingRequest = App.Protobuf.LiveMusic.GetRankingRequest;
-using LiveMusicGetRankingResponse = App.Protobuf.LiveMusic.GetRankingResponse;
-using LiveSaveSettingRequest = App.Protobuf.Live.SaveSettingRequest;
-using LiveSkipFreeRequest = App.Protobuf.Live.SkipFreeRequest;
-using LiveSkipFreeResponse = App.Protobuf.Live.SkipFreeResponse;
-using LiveStartFreeRequest = App.Protobuf.Live.StartFreeRequest;
-using LiveStartFreeResponse = App.Protobuf.Live.StartFreeResponse;
-using MasterdataVersionRequest = App.Protobuf.Masterdata.VersionRequest;
-using MissionFetchRequest = App.Protobuf.Present.FetchMissionRequest;
-using MissionFetchResponse = App.Protobuf.Present.FetchMissionResponse;
-using PlayerCheckNgWordRequest = App.Protobuf.Player.CheckNgWordRequest;
-using PlayerCheckNgWordResponse = App.Protobuf.Player.CheckNgWordResponse;
-using PlayerChangeFavoriteMemberRequest = App.Protobuf.Player.ChangeFavoriteMemberRequest;
-using PlayerChangeFavoriteMemberResponse = App.Protobuf.Player.ChangeFavoriteMemberResponse;
-using PlayerEditProfileRequest = App.Protobuf.Player.EditProfileRequest;
-using PlayerEditProfileResponse = App.Protobuf.Player.EditProfileResponse;
-using PlayerGetDataRequest = App.Protobuf.Player.GetPlayerDataRequest;
-using PlayerRegisterRequest = App.Protobuf.Player.RegisterRequest;
-using PresentFetchRequest = App.Protobuf.Present.FetchRequest;
-using PresentFetchResponse = App.Protobuf.Present.FetchResponse;
-using PresentHistoryRequest = App.Protobuf.Present.HistoryRequest;
-using PresentHistoryResponse = App.Protobuf.Present.HistoryResponse;
-using ShopCheckMaintenanceRequest = App.Protobuf.Shop.CheckMaintenanceShopRequest;
-using ShopCheckMaintenanceResponse = App.Protobuf.Shop.CheckMaintenanceShopResponse;
-using StoryCheckMaintenanceRequest = App.Protobuf.Story.CheckMaintenanceStoryRequest;
-using StoryCheckMaintenanceResponse = App.Protobuf.Story.CheckMaintenanceStoryResponse;
-using StoryReadFriendshipEpisodeRequest = App.Protobuf.Story.ReadFriendshipEpisodeRequest;
-using StoryReadFriendshipEpisodeResponse = App.Protobuf.Story.ReadFriendshipEpisodeResponse;
-using StoryReadEpisodeRequest = App.Protobuf.Story.ReadStoryEpisodeRequest;
-using StoryReadEpisodeResponse = App.Protobuf.Story.ReadStoryEpisodeResponse;
+using Protocol = App.Protobuf;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -118,7 +78,7 @@ app.UseMiddleware<RequestLoggingScopeMiddleware>();
 
 app.MapGrpcUnary(
     "/app.masterdata.MasterdataService/Version",
-    MasterdataVersionRequest.Parser,
+    Protocol.Masterdata.VersionRequest.Parser,
     (ctx, _) =>
     {
         var protocol = ctx.RequestServices.GetRequiredService<MasterdataProtocolBuilder>();
@@ -127,7 +87,7 @@ app.MapGrpcUnary(
 
 app.MapGrpcUnary(
     "/app.player.PlayerService/Register",
-    PlayerRegisterRequest.Parser,
+    Protocol.Player.RegisterRequest.Parser,
     (ctx, request) =>
     {
         var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
@@ -138,7 +98,7 @@ app.MapGrpcUnary(
 
 app.MapGrpcUnary(
     "/app.player.PlayerService/GetPlayerData",
-    PlayerGetDataRequest.Parser,
+    Protocol.Player.GetPlayerDataRequest.Parser,
     (ctx, _) =>
     {
         var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
@@ -149,45 +109,45 @@ app.MapGrpcUnary(
 
 app.MapGrpcUnary(
     "/app.player.PlayerService/CheckNgWord",
-    PlayerCheckNgWordRequest.Parser,
-    static (_, _) => Task.FromResult(new PlayerCheckNgWordResponse()));
+    Protocol.Player.CheckNgWordRequest.Parser,
+    static (_, _) => Task.FromResult(new Protocol.Player.CheckNgWordResponse()));
 
 app.MapGrpcUnary(
     "/app.player.PlayerService/EditProfile",
-    PlayerEditProfileRequest.Parser,
+    Protocol.Player.EditProfileRequest.Parser,
     (ctx, request) =>
     {
         var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
         var player = players.GetFromRequest(ctx.Request);
         players.UpdateDisplayName(player, request.Name);
-        return Task.FromResult(new PlayerEditProfileResponse());
+        return Task.FromResult(new Protocol.Player.EditProfileResponse());
     });
 
 app.MapGrpcUnary(
     "/app.player.PlayerService/ChangeFavoriteMember",
-    PlayerChangeFavoriteMemberRequest.Parser,
+    Protocol.Player.ChangeFavoriteMemberRequest.Parser,
     (ctx, request) =>
     {
         var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
         var player = players.GetFromRequest(ctx.Request);
         players.UpdateFavoriteMember(player, request.MemberId);
-        return Task.FromResult(new PlayerChangeFavoriteMemberResponse());
+        return Task.FromResult(new Protocol.Player.ChangeFavoriteMemberResponse());
     });
 
 app.MapGrpcUnary(
     "/app.deck.DeckService/SaveDecks",
-    DeckSaveDecksRequest.Parser,
+    Protocol.Deck.SaveDecksRequest.Parser,
     (ctx, request) =>
     {
         var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
         var player = players.GetFromRequest(ctx.Request);
         players.SaveDecks(player, request.Decks, request.MainDeck);
-        return Task.FromResult(new DeckSaveDecksResponse());
+        return Task.FromResult(new Protocol.Deck.SaveDecksResponse());
     });
 
 app.MapGrpcUnary(
     "/app.home.HomeService/Get",
-    HomeGetRequest.Parser,
+    Protocol.Home.GetHomeRequest.Parser,
     (ctx, _) =>
     {
         var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
@@ -199,64 +159,64 @@ app.MapGrpcUnary(
 
 app.MapGrpcUnary(
     "/app.present.PresentService/Fetch",
-    PresentFetchRequest.Parser,
-    static (_, _) => Task.FromResult(new PresentFetchResponse()));
+    Protocol.Present.FetchRequest.Parser,
+    static (_, _) => Task.FromResult(new Protocol.Present.FetchResponse()));
 
 app.MapGrpcUnary(
     "/app.present.PresentService/History",
-    PresentHistoryRequest.Parser,
-    static (_, _) => Task.FromResult(new PresentHistoryResponse()));
+    Protocol.Present.HistoryRequest.Parser,
+    static (_, _) => Task.FromResult(new Protocol.Present.HistoryResponse()));
 
 app.MapGrpcUnary(
     "/app.mission.MissionService/Fetch",
-    MissionFetchRequest.Parser,
-    static (_, _) => Task.FromResult(new MissionFetchResponse()));
+    Protocol.Present.FetchMissionRequest.Parser,
+    static (_, _) => Task.FromResult(new Protocol.Present.FetchMissionResponse()));
 
 app.MapGrpcUnary(
     "/app.announcement.AnnouncementService/GetList",
-    AnnouncementGetListRequest.Parser,
-    static (_, _) => Task.FromResult(new AnnouncementGetListResponse()));
+    Protocol.Announcement.GetListRequest.Parser,
+    static (_, _) => Task.FromResult(new Protocol.Announcement.GetListResponse()));
 
 app.MapGrpcUnary(
     "/app.carousel_help.CarouselHelpService/Shown",
-    CarouselHelpShownRequest.Parser,
+    Protocol.CarouselHelp.ShownRequest.Parser,
     (ctx, request) =>
     {
         var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
         var player = players.GetFromRequest(ctx.Request);
         players.SaveShownCarouselHelps(player, request.MasterIds);
-        return Task.FromResult(new CarouselHelpShownResponse());
+        return Task.FromResult(new Protocol.CarouselHelp.ShownResponse());
     });
 
 app.MapGrpcUnary(
     "/app.content_unlock.ContentUnlockService/Shown",
-    ContentUnlockShownRequest.Parser,
+    Protocol.ContentUnlock.ShownRequest.Parser,
     (ctx, request) =>
     {
         var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
         var player = players.GetFromRequest(ctx.Request);
         players.SaveShownContentUnlocks(player, request.MasterIds);
-        return Task.FromResult(new ContentUnlockShownResponse());
+        return Task.FromResult(new Protocol.ContentUnlock.ShownResponse());
     });
 
 app.MapGrpcUnary(
     "/app.live.LiveService/StartFree",
-    LiveStartFreeRequest.Parser,
-    static (_, _) => Task.FromResult(new LiveStartFreeResponse()));
+    Protocol.Live.StartFreeRequest.Parser,
+    static (_, _) => Task.FromResult(new Protocol.Live.StartFreeResponse()));
 
 app.MapGrpcUnary(
     "/app.live.LiveService/FinishFree",
-    LiveFinishFreeRequest.Parser,
-    static (_, _) => Task.FromResult(new LiveFinishFreeResponse()));
+    Protocol.Live.FinishFreeRequest.Parser,
+    static (_, _) => Task.FromResult(new Protocol.Live.FinishFreeResponse()));
 
 app.MapGrpcUnary(
     "/app.live.LiveService/SkipFree",
-    LiveSkipFreeRequest.Parser,
-    static (_, _) => Task.FromResult(new LiveSkipFreeResponse()));
+    Protocol.Live.SkipFreeRequest.Parser,
+    static (_, _) => Task.FromResult(new Protocol.Live.SkipFreeResponse()));
 
 app.MapGrpcUnary(
     "/app.live.LiveService/SaveSetting",
-    LiveSaveSettingRequest.Parser,
+    Protocol.Live.SaveSettingRequest.Parser,
     (ctx, request) =>
     {
         var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
@@ -268,39 +228,39 @@ app.MapGrpcUnary(
 
 app.MapGrpcUnary(
     "/app.livemusic.LiveMusicService/GetRanking",
-    LiveMusicGetRankingRequest.Parser,
-    static (_, _) => Task.FromResult(new LiveMusicGetRankingResponse()));
+    Protocol.LiveMusic.GetRankingRequest.Parser,
+    static (_, _) => Task.FromResult(new Protocol.LiveMusic.GetRankingResponse()));
 
 app.MapGrpcUnary(
     "/app.shop.ShopService/CheckMaintenanceShop",
-    ShopCheckMaintenanceRequest.Parser,
-    static (_, _) => Task.FromResult(new ShopCheckMaintenanceResponse()));
+    Protocol.Shop.CheckMaintenanceShopRequest.Parser,
+    static (_, _) => Task.FromResult(new Protocol.Shop.CheckMaintenanceShopResponse()));
 
 app.MapGrpcUnary(
     "/app.story.StoryService/CheckMaintenanceStory",
-    StoryCheckMaintenanceRequest.Parser,
-    static (_, _) => Task.FromResult(new StoryCheckMaintenanceResponse()));
+    Protocol.Story.CheckMaintenanceStoryRequest.Parser,
+    static (_, _) => Task.FromResult(new Protocol.Story.CheckMaintenanceStoryResponse()));
 
 app.MapGrpcUnary(
     "/app.story.StoryService/ReadStoryEpisode",
-    StoryReadEpisodeRequest.Parser,
+    Protocol.Story.ReadStoryEpisodeRequest.Parser,
     (ctx, request) =>
     {
         var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
         var player = players.GetFromRequest(ctx.Request);
         players.ReadStoryEpisode(player, request.EpisodeId, request.IsSkipped);
-        return Task.FromResult(new StoryReadEpisodeResponse());
+        return Task.FromResult(new Protocol.Story.ReadStoryEpisodeResponse());
     });
 
 app.MapGrpcUnary(
     "/app.story.StoryService/ReadFriendshipEpisode",
-    StoryReadFriendshipEpisodeRequest.Parser,
+    Protocol.Story.ReadFriendshipEpisodeRequest.Parser,
     (ctx, request) =>
     {
         var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
         var player = players.GetFromRequest(ctx.Request);
         players.ReadFriendshipEpisode(player, request.EpisodeId, request.IsSkipped);
-        return Task.FromResult(new StoryReadFriendshipEpisodeResponse());
+        return Task.FromResult(new Protocol.Story.ReadFriendshipEpisodeResponse());
     });
 
 app.MapGrpcUnary(
