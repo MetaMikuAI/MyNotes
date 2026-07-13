@@ -16,6 +16,8 @@ public sealed class PlayerRecord
     internal object DeckStateLock { get; } = new();
     internal Dictionary<int, Deck> DeckOverrides { get; } = [];
     internal int MainDeckOverride { get; set; }
+    internal object StoryStateLock { get; } = new();
+    internal Dictionary<long, StoryEpisode> SeenStoryEpisodes { get; } = [];
     public ConcurrentDictionary<long, byte> ShownCarouselHelpIds { get; } = new();
     public ConcurrentDictionary<long, byte> ShownContentUnlockIds { get; } = new();
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;

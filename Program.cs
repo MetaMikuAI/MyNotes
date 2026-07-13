@@ -39,6 +39,8 @@ using PresentHistoryRequest = App.Protobuf.Present.HistoryRequest;
 using PresentHistoryResponse = App.Protobuf.Present.HistoryResponse;
 using StoryCheckMaintenanceRequest = App.Protobuf.Story.CheckMaintenanceStoryRequest;
 using StoryCheckMaintenanceResponse = App.Protobuf.Story.CheckMaintenanceStoryResponse;
+using StoryReadEpisodeRequest = App.Protobuf.Story.ReadStoryEpisodeRequest;
+using StoryReadEpisodeResponse = App.Protobuf.Story.ReadStoryEpisodeResponse;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -269,6 +271,17 @@ app.MapGrpcUnary(
     "/app.story.StoryService/CheckMaintenanceStory",
     StoryCheckMaintenanceRequest.Parser,
     static (_, _) => Task.FromResult(new StoryCheckMaintenanceResponse()));
+
+app.MapGrpcUnary(
+    "/app.story.StoryService/ReadStoryEpisode",
+    StoryReadEpisodeRequest.Parser,
+    (ctx, request) =>
+    {
+        var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        var player = players.GetFromRequest(ctx.Request);
+        players.ReadStoryEpisode(player, request.EpisodeId, request.IsSkipped);
+        return Task.FromResult(new StoryReadEpisodeResponse());
+    });
 
 app.MapGrpcUnary(
     "/app.external_payments.ExternalPaymentsService/Nop",
