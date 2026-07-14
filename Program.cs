@@ -210,6 +210,11 @@ app.MapGrpcUnary(
     static (_, _) => Task.FromResult(new Protocol.Circle.SearchResponse()));
 
 app.MapGrpcUnary(
+    "/app.circle.CircleService/GetCircleDetail",
+    Protocol.Circle.GetCircleRequest.Parser,
+    static (_, _) => Task.FromResult(new Protocol.Circle.GetCircleResponse()));
+
+app.MapGrpcUnary(
     "/app.deck.DeckService/SaveDecks",
     Protocol.Deck.SaveDecksRequest.Parser,
     (ctx, request) =>
