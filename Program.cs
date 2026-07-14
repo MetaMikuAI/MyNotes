@@ -200,6 +200,11 @@ app.MapGrpcUnary(
     });
 
 app.MapGrpcUnary(
+    "/app.gacha.GachaService/History",
+    Protocol.Gacha.HistoryRequest.Parser,
+    static (_, _) => Task.FromResult(new Protocol.Gacha.HistoryResponse()));
+
+app.MapGrpcUnary(
     "/app.live.LiveService/StartFree",
     Protocol.Live.StartFreeRequest.Parser,
     static (_, _) => Task.FromResult(new Protocol.Live.StartFreeResponse()));
