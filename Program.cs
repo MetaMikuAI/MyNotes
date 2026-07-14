@@ -235,6 +235,11 @@ app.MapGrpcUnary(
     static (_, _) => Task.FromResult(new Protocol.CircleInvitation.GetInvitablePlayerResponse()));
 
 app.MapGrpcUnary(
+    "/app.circlejoinrequest.CircleJoinReqService/GetCircleJoinRequestList",
+    Empty.Parser,
+    static (_, _) => Task.FromResult(new Protocol.CircleJoinRequest.GetCircleJoinRequestListResponse()));
+
+app.MapGrpcUnary(
     "/app.deck.DeckService/SaveDecks",
     Protocol.Deck.SaveDecksRequest.Parser,
     (ctx, request) =>
