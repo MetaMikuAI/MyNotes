@@ -265,6 +265,11 @@ app.MapGrpcUnary(
     static (_, _) => Task.FromResult(new Protocol.CircleMission.FetchCircleMissionResponse()));
 
 app.MapGrpcUnary(
+    "/app.circleplayer.CirclePlayerService/AutoTransferMaster",
+    Empty.Parser,
+    static (_, _) => Task.FromResult(new Protocol.CirclePlayer.AutoTransferMasterResponse()));
+
+app.MapGrpcUnary(
     "/app.deck.DeckService/SaveDecks",
     Protocol.Deck.SaveDecksRequest.Parser,
     (ctx, request) =>
