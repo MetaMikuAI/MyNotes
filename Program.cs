@@ -308,6 +308,11 @@ app.MapGrpcUnary(
     static (_, _) => Task.FromResult(new Protocol.Present.FetchResponse()));
 
 app.MapGrpcUnary(
+    "/app.present.PresentService/Open",
+    Protocol.Present.OpenRequest.Parser,
+    static (_, _) => Task.FromResult(new Protocol.Present.OpenResponse()));
+
+app.MapGrpcUnary(
     "/app.present.PresentService/History",
     Protocol.Present.HistoryRequest.Parser,
     static (_, _) => Task.FromResult(new Protocol.Present.HistoryResponse()));
