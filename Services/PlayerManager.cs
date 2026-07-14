@@ -15,6 +15,7 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
     private readonly ConcurrentDictionary<long, PlayerRecord> _playersByProfileId = new();
     private readonly ConcurrentDictionary<string, PlayerRecord> _playersByAuthorization = new(StringComparer.Ordinal);
     private readonly object _invitationStateLock = new();
+    private readonly object _friendStateLock = new();
     private long _nextProfileId = 100000000;
 
     public PlayerRecord Register(string initialDataGroup)
@@ -120,6 +121,44 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
             string.Join(',', reportIdSnapshot));
     }
 
+    public (PlayerRecord? Target, bool IsAccepted) RequestFriend(PlayerRecord requester, string targetPlayerId)
+    {
+        lock (_friendStateLock)
+        {
+            if (!_playersById.TryGetValue(targetPlayerId, out var target) || ReferenceEquals(requester, target))
+                return (null, false);
+
+            if (requester.AcceptedFriendPlayerIds.Contains(target.PlayerId))
+                return (target, true);
+
+            var isAccepted = target.PendingSentFriendPlayerIds.Remove(requester.PlayerId);
+            if (isAccepted)
+            {
+                requester.ReceivedFriendPlayerIds.Remove(target.PlayerId);
+                requester.AcceptedFriendPlayerIds.Add(target.PlayerId);
+                target.AcceptedFriendPlayerIds.Add(requester.PlayerId);
+            }
+            else
+            {
+                requester.PendingSentFriendPlayerIds.Add(target.PlayerId);
+                target.ReceivedFriendPlayerIds.Add(requester.PlayerId);
+            }
+
+            return (target, isAccepted);
+        }
+    }
+
+    public (PlayerRecord[] Accepted, PlayerRecord[] PendingSent, PlayerRecord[] Received) GetFriendState(PlayerRecord player)
+    {
+        lock (_friendStateLock)
+        {
+            return (
+                ResolvePlayers(player.AcceptedFriendPlayerIds),
+                ResolvePlayers(player.PendingSentFriendPlayerIds),
+                ResolvePlayers(player.ReceivedFriendPlayerIds));
+        }
+    }
+
     public void UpdateDisplayName(PlayerRecord player, string displayName)
     {
         if (string.IsNullOrWhiteSpace(displayName))
@@ -148,17 +187,23 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
 
     public void Remove(PlayerRecord player)
     {
-        lock (_invitationStateLock)
+        lock (_friendStateLock)
         {
-            foreach (var other in _playersById.Values)
+            lock (_invitationStateLock)
             {
-                other.InvitationEstablishments.Remove(player.PlayerId);
-                other.NewInvitationPlayerIds.Remove(player.PlayerId);
-            }
+                foreach (var other in _playersById.Values)
+                {
+                    other.InvitationEstablishments.Remove(player.PlayerId);
+                    other.NewInvitationPlayerIds.Remove(player.PlayerId);
+                    other.AcceptedFriendPlayerIds.Remove(player.PlayerId);
+                    other.PendingSentFriendPlayerIds.Remove(player.PlayerId);
+                    other.ReceivedFriendPlayerIds.Remove(player.PlayerId);
+                }
 
-            _playersByAuthorization.TryRemove(player.AuthorizationKey, out _);
-            _playersByProfileId.TryRemove(player.ProfileId, out _);
-            _playersById.TryRemove(player.PlayerId, out _);
+                _playersByAuthorization.TryRemove(player.AuthorizationKey, out _);
+                _playersByProfileId.TryRemove(player.ProfileId, out _);
+                _playersById.TryRemove(player.PlayerId, out _);
+            }
         }
 
         logger.LogInformation("Removed player {PlayerId} profile {ProfileId}", player.PlayerId, player.ProfileId);
@@ -442,6 +487,13 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
         _playersByProfileId[player.ProfileId] = player;
         _playersByAuthorization[player.AuthorizationKey] = player;
     }
+
+    private PlayerRecord[] ResolvePlayers(IEnumerable<string> playerIds) =>
+        playerIds
+            .Select(playerId => _playersById.TryGetValue(playerId, out var player) ? player : null)
+            .OfType<PlayerRecord>()
+            .OrderBy(player => player.ProfileId)
+            .ToArray();
 
     private static string? ReadHeader(HttpRequest request, string name) =>
         request.Headers.TryGetValue(name, out var value) && value.Count > 0 ? value.ToString() : null;

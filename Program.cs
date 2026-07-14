@@ -220,6 +220,22 @@ app.MapGrpcUnary(
     });
 
 app.MapGrpcUnary(
+    "/app.friend.FriendService/FriendRequest",
+    Protocol.Friend.FriendApprovalRequest.Parser,
+    (ctx, request) =>
+    {
+        var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        var protocol = ctx.RequestServices.GetRequiredService<PlayerProtocolBuilder>();
+        var player = players.GetFromRequest(ctx.Request);
+        var result = players.RequestFriend(player, request.TargetPlayerId);
+        return Task.FromResult(new Protocol.Friend.FriendApprovalResponse
+        {
+            FriendPlayerProfile = result.Target == null ? null : protocol.BuildSimpleProfile(result.Target),
+            IsAccepted = result.IsAccepted
+        });
+    });
+
+app.MapGrpcUnary(
     "/app.friend.FriendService/PlayerReport",
     Protocol.Friend.PlayerReportRequest.Parser,
     (ctx, request) =>

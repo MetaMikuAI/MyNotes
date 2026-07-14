@@ -11,7 +11,7 @@ public sealed class HomeProtocolBuilder(PlayerManager players, PlayerProtocolBui
         var response = new GetHomeResponse
         {
             Notification = snapshot.HasNotification ? new Notification() : null,
-            Friends = snapshot.HasFriends ? new Friends() : null
+            Friends = snapshot.HasFriends ? playerProtocol.BuildFriends(player, players) : null
         };
 
         foreach (var invitation in players.GetInvitationProfiles(player))

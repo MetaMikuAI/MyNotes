@@ -36,7 +36,7 @@ public sealed class PlayerProtocolBuilder(MasterDataService master)
             PlayerData = BuildPlayerData(player),
             Notification = new Notification(),
             Limitation = new Limitation(),
-            Friends = new Friends(),
+            Friends = BuildFriends(player, players),
             Invitation = new Invitation
             {
                 IsInvitationCodeInputAlready = invitationState.InputAlready
@@ -52,6 +52,22 @@ public sealed class PlayerProtocolBuilder(MasterDataService master)
         var (decks, mainDeckId) = BuildDeckState(player, initialData);
         var mainDeck = decks.FirstOrDefault(deck => deck.Id == mainDeckId);
         return BuildSimpleProfile(player, initialData, mainDeck);
+    }
+
+    public Friends BuildFriends(PlayerRecord player, PlayerManager players)
+    {
+        var state = players.GetFriendState(player);
+        var friends = new Friends
+        {
+            Accepted = new FriendProfiles(),
+            PendingSent = new FriendProfiles(),
+            Receive = new FriendProfiles()
+        };
+
+        friends.Accepted.PlayerProfiles.Add(state.Accepted.Select(BuildSimpleProfile));
+        friends.PendingSent.PlayerProfiles.Add(state.PendingSent.Select(BuildSimpleProfile));
+        friends.Receive.PlayerProfiles.Add(state.Received.Select(BuildSimpleProfile));
+        return friends;
     }
 
     private PlayerData BuildPlayerData(PlayerRecord player)
