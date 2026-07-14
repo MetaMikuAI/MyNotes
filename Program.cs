@@ -312,6 +312,11 @@ app.MapGrpcUnary(
     static (_, _) => Task.FromResult(new Protocol.Gacha.HistoryResponse()));
 
 app.MapGrpcUnary(
+    "/app.gacha.GachaService/CheckMaintenanceGacha",
+    Protocol.Gacha.CheckMaintenanceGachaRequest.Parser,
+    static (_, _) => Task.FromResult(new Protocol.Gacha.CheckMaintenanceGachaResponse()));
+
+app.MapGrpcUnary(
     "/app.live.LiveService/StartFree",
     Protocol.Live.StartFreeRequest.Parser,
     static (_, _) => Task.FromResult(new Protocol.Live.StartFreeResponse()));
