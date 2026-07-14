@@ -451,7 +451,20 @@ app.MapGrpcUnary(
 app.MapGrpcUnary(
     "/app.circleinvitation.CircleInvitationService/GetInvitablePlayer",
     Protocol.CircleInvitation.GetInvitablePlayerRequest.Parser,
-    static (_, _) => Task.FromResult(new Protocol.CircleInvitation.GetInvitablePlayerResponse()));
+    (ctx, request) =>
+    {
+        var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        var target = request.HasPlayerId
+            ? players.GetInvitableCirclePlayer(players.GetFromRequest(ctx.Request), request.PlayerId)
+            : null;
+        var response = new Protocol.CircleInvitation.GetInvitablePlayerResponse();
+        if (target != null)
+        {
+            var profiles = ctx.RequestServices.GetRequiredService<PlayerProtocolBuilder>();
+            response.PlayerBasicProfile = profiles.BuildSimpleProfile(target);
+        }
+        return Task.FromResult(response);
+    });
 
 app.MapGrpcUnary(
     "/app.circlejoinrequest.CircleJoinReqService/GetCircleJoinRequestList",

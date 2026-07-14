@@ -251,6 +251,20 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
         }
     }
 
+    public PlayerRecord? GetInvitableCirclePlayer(PlayerRecord requester, string playerId)
+    {
+        lock (_circleStateLock)
+        {
+            if (requester.CircleId == 0 ||
+                !_playersById.TryGetValue(playerId, out var target) ||
+                ReferenceEquals(requester, target) ||
+                target.CircleId != 0)
+                return null;
+
+            return target;
+        }
+    }
+
     public void UpdateDisplayName(PlayerRecord player, string displayName)
     {
         if (string.IsNullOrWhiteSpace(displayName))
