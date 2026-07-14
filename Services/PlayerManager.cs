@@ -136,6 +136,16 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
             player.ConnectionPassword = password;
     }
 
+    public bool TryGetConnectedPlayer(string playerId, string password, out PlayerRecord player)
+    {
+        if (!_playersById.TryGetValue(playerId, out player!))
+            return false;
+
+        lock (player.ConnectionStateLock)
+            return player.ConnectionPassword.Length != 0 &&
+                   string.Equals(player.ConnectionPassword, password, StringComparison.Ordinal);
+    }
+
     public void UpdateLiveSetting(PlayerRecord player, byte[] settingAll)
     {
         player.LiveSettingAll = LiveSettingCodec.NormalizeLiveSettingAll(settingAll);

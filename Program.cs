@@ -129,6 +129,22 @@ app.MapGrpcUnary(
     });
 
 app.MapGrpcUnary(
+    "/app.player.PlayerService/GetConnectedPlayer",
+    Protocol.Player.GetConnectedPlayerRequest.Parser,
+    (ctx, request) =>
+    {
+        var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        var response = new Protocol.Player.GetConnectedPlayerResponse();
+        if (players.TryGetConnectedPlayer(request.PlayerId, request.Password, out var player))
+        {
+            response.Nickname = player.DisplayName;
+            response.PlayerRank = 1;
+        }
+
+        return Task.FromResult(response);
+    });
+
+app.MapGrpcUnary(
     "/app.player.PlayerService/GetPlayerData",
     Protocol.Player.GetPlayerDataRequest.Parser,
     (ctx, _) =>
