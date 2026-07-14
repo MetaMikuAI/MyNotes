@@ -382,6 +382,11 @@ app.MapGrpcUnary(
     static (_, _) => Task.FromResult(new Protocol.Event.GetRankingListResponse()));
 
 app.MapGrpcUnary(
+    "/app.event.EventService/GetRank",
+    Protocol.Event.GetRankRequest.Parser,
+    static (_, _) => Task.FromResult(new Protocol.Event.GetRankResponse()));
+
+app.MapGrpcUnary(
     "/app.gacha.GachaService/History",
     Protocol.Gacha.HistoryRequest.Parser,
     static (_, _) => Task.FromResult(new Protocol.Gacha.HistoryResponse()));
