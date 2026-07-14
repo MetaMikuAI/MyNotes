@@ -258,6 +258,11 @@ app.MapGrpcUnary(
     static (_, _) => Task.FromResult(new Protocol.Announcement.GetListResponse()));
 
 app.MapGrpcUnary(
+    "/app.announcement.AnnouncementService/Get",
+    Protocol.Announcement.GetRequest.Parser,
+    static (_, _) => Task.FromResult(new Protocol.Announcement.GetResponse()));
+
+app.MapGrpcUnary(
     "/app.carousel_help.CarouselHelpService/Shown",
     Protocol.CarouselHelp.ShownRequest.Parser,
     (ctx, request) =>
