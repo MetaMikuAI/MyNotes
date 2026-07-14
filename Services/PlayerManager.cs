@@ -193,6 +193,16 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
         }
     }
 
+    public void UnlinkFriend(PlayerRecord player, string friendPlayerId)
+    {
+        lock (_friendStateLock)
+        {
+            player.AcceptedFriendPlayerIds.Remove(friendPlayerId);
+            if (_playersById.TryGetValue(friendPlayerId, out var friend))
+                friend.AcceptedFriendPlayerIds.Remove(player.PlayerId);
+        }
+    }
+
     public void UpdateDisplayName(PlayerRecord player, string displayName)
     {
         if (string.IsNullOrWhiteSpace(displayName))

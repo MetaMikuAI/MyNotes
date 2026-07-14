@@ -261,6 +261,17 @@ app.MapGrpcUnary(
     });
 
 app.MapGrpcUnary(
+    "/app.friend.FriendService/FriendUnlink",
+    Protocol.Friend.FriendUnlinkRequest.Parser,
+    (ctx, request) =>
+    {
+        var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        var player = players.GetFromRequest(ctx.Request);
+        players.UnlinkFriend(player, request.FriendPlayerId);
+        return Task.FromResult(new Protocol.Friend.FriendUnlinkResponse());
+    });
+
+app.MapGrpcUnary(
     "/app.friend.FriendService/PlayerReport",
     Protocol.Friend.PlayerReportRequest.Parser,
     (ctx, request) =>
