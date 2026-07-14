@@ -9,6 +9,7 @@ public sealed class PlayerProtocolBuilder(MasterDataService master)
 {
     private static readonly long[] InitialCharacterIds = [1, 2, 3, 4, 5];
     private const int LeaderSlotIndex = 2;
+    private const int InitialPlayerRankExp = 1;
     private const int ProjectedDeckTotalPower = 1000;
 
     public RegisterResponse Register(PlayerRecord player) => new()
@@ -31,6 +32,14 @@ public sealed class PlayerProtocolBuilder(MasterDataService master)
         Invitation = new Invitation()
     };
 
+    public PlayerSimpleProfile BuildSimpleProfile(PlayerRecord player)
+    {
+        var initialData = master.GetInitialPlayerData(player.InitialDataGroup);
+        var (decks, mainDeckId) = BuildDeckState(player, initialData);
+        var mainDeck = decks.FirstOrDefault(deck => deck.Id == mainDeckId);
+        return BuildSimpleProfile(player, initialData, mainDeck);
+    }
+
     private PlayerData BuildPlayerData(PlayerRecord player)
     {
         var initialData = master.GetInitialPlayerData(player.InitialDataGroup);
@@ -50,7 +59,7 @@ public sealed class PlayerProtocolBuilder(MasterDataService master)
                 PreviousRecoveryAt = UnixSeconds(player.CreatedAt),
                 LastDailyResetAt = UnixSeconds(player.CreatedAt)
             },
-            PlayerRankExp = 1,
+            PlayerRankExp = InitialPlayerRankExp,
             LiveSkip = new LiveSkip(),
             PlayerMissionData = new PlayerMissionData(),
             LiveSetting = new LiveSetting
@@ -148,7 +157,8 @@ public sealed class PlayerProtocolBuilder(MasterDataService master)
         {
             Id = player.PlayerId,
             Name = player.DisplayName,
-            LastUpdatedAt = UnixSeconds(player.CreatedAt),
+            RankExp = InitialPlayerRankExp,
+            LastUpdatedAt = player.ProfileUpdatedAtUnixSeconds,
             ProfileId = player.ProfileId
         };
 

@@ -135,6 +135,20 @@ app.MapGrpcUnary(
     });
 
 app.MapGrpcUnary(
+    "/app.friend.FriendService/FindByProfileID",
+    Protocol.Friend.FindByProfileIDRequest.Parser,
+    (ctx, request) =>
+    {
+        var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        var protocol = ctx.RequestServices.GetRequiredService<PlayerProtocolBuilder>();
+        var response = new Protocol.Friend.FindByProfileIDResponse();
+        if (players.TryGetByProfileId(request.PlayerProfileId, out var player))
+            response.PlayerProfile = protocol.BuildSimpleProfile(player);
+
+        return Task.FromResult(response);
+    });
+
+app.MapGrpcUnary(
     "/app.deck.DeckService/SaveDecks",
     Protocol.Deck.SaveDecksRequest.Parser,
     (ctx, request) =>

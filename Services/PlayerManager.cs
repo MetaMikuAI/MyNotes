@@ -9,12 +9,14 @@ namespace MyNotes.Services;
 public sealed class PlayerManager(ILogger<PlayerManager> logger)
 {
     private readonly ConcurrentDictionary<string, PlayerRecord> _playersById = new();
+    private readonly ConcurrentDictionary<long, PlayerRecord> _playersByProfileId = new();
     private readonly ConcurrentDictionary<string, PlayerRecord> _playersByAuthorization = new(StringComparer.Ordinal);
     private long _nextProfileId = 100000000;
 
     public PlayerRecord Register(string initialDataGroup)
     {
         var profileId = Interlocked.Increment(ref _nextProfileId);
+        var now = DateTimeOffset.UtcNow;
         var player = new PlayerRecord
         {
             ProfileId = profileId,
@@ -23,7 +25,9 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
             AuthorizationKey = NewToken(32),
             DeviceId = NewToken(16),
             InitialDataGroup = string.IsNullOrWhiteSpace(initialDataGroup) ? ServerConfig.InitialDataGroup : initialDataGroup,
-            LiveSettingAll = LiveSettingCodec.CreateDefaultLiveSettingAll()
+            LiveSettingAll = LiveSettingCodec.CreateDefaultLiveSettingAll(),
+            CreatedAt = now,
+            ProfileUpdatedAtUnixSeconds = now.ToUnixTimeSeconds()
         };
 
         Add(player);
@@ -39,12 +43,16 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
         return _playersById.Values.OrderBy(p => p.ProfileId).FirstOrDefault() ?? Register(ServerConfig.InitialDataGroup);
     }
 
+    public bool TryGetByProfileId(long profileId, out PlayerRecord player) =>
+        _playersByProfileId.TryGetValue(profileId, out player!);
+
     public void UpdateDisplayName(PlayerRecord player, string displayName)
     {
         if (string.IsNullOrWhiteSpace(displayName))
             return;
 
         player.DisplayName = displayName.Trim();
+        player.TouchProfile();
         logger.LogInformation("Updated player {PlayerId} display name to {DisplayName}", player.PlayerId, player.DisplayName);
     }
 
@@ -57,6 +65,7 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
     public void UpdateFavoriteMember(PlayerRecord player, long memberCardId)
     {
         player.FavoriteMemberCardId = memberCardId;
+        player.TouchProfile();
         logger.LogInformation(
             "Updated player {PlayerId} favorite member card to {MemberCardId}",
             player.PlayerId,
@@ -74,6 +83,9 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
 
             if (mainDeck != 0)
                 player.MainDeckOverride = mainDeck;
+
+            if (player.FavoriteMemberCardId == 0)
+                player.TouchProfile();
         }
 
         logger.LogInformation(
@@ -212,6 +224,7 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
     private void Add(PlayerRecord player)
     {
         _playersById[player.PlayerId] = player;
+        _playersByProfileId[player.ProfileId] = player;
         _playersByAuthorization[player.AuthorizationKey] = player;
     }
 

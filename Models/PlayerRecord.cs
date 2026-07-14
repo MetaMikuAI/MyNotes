@@ -5,6 +5,8 @@ namespace MyNotes.Models;
 
 public sealed class PlayerRecord
 {
+    private long _profileUpdatedAtUnixSeconds = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
     public long ProfileId { get; init; }
     public string PlayerId { get; init; } = "";
     public string DisplayName { get; set; } = "MyNotes";
@@ -25,4 +27,23 @@ public sealed class PlayerRecord
     public ConcurrentDictionary<long, byte> ShownCarouselHelpIds { get; } = new();
     public ConcurrentDictionary<long, byte> ShownContentUnlockIds { get; } = new();
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
+    internal long ProfileUpdatedAtUnixSeconds
+    {
+        get => Interlocked.Read(ref _profileUpdatedAtUnixSeconds);
+        init => Interlocked.Exchange(ref _profileUpdatedAtUnixSeconds, value);
+    }
+
+    internal void TouchProfile()
+    {
+        var candidate = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        while (true)
+        {
+            var current = Interlocked.Read(ref _profileUpdatedAtUnixSeconds);
+            if (candidate <= current)
+                return;
+
+            if (Interlocked.CompareExchange(ref _profileUpdatedAtUnixSeconds, candidate, current) == current)
+                return;
+        }
+    }
 }
