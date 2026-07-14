@@ -173,6 +173,11 @@ app.MapGrpcUnary(
     static (_, _) => Task.FromResult(new Protocol.Present.FetchMissionResponse()));
 
 app.MapGrpcUnary(
+    "/app.loginbonus.LoginBonusService/Update",
+    Protocol.Present.UpdateLoginbonusRequest.Parser,
+    static (_, _) => Task.FromResult(new Protocol.Present.UpdateLoginbonusResponse()));
+
+app.MapGrpcUnary(
     "/app.announcement.AnnouncementService/GetList",
     Protocol.Announcement.GetListRequest.Parser,
     static (_, _) => Task.FromResult(new Protocol.Announcement.GetListResponse()));
