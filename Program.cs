@@ -164,6 +164,11 @@ app.MapGrpcUnary(
     });
 
 app.MapGrpcUnary(
+    "/app.invitation.InvitationService/UpdateInvitationView",
+    Protocol.Invitation.UpdateInvitationViewRequest.Parser,
+    static (_, _) => Task.FromResult(new Protocol.Invitation.UpdateInvitationViewResponse()));
+
+app.MapGrpcUnary(
     "/app.circle.CircleService/GetRecommendedCircleList",
     Protocol.Circle.GetRecommendedCircleListRequest.Parser,
     static (_, _) => Task.FromResult(new Protocol.Circle.GetRecommendedCircleListResponse()));
