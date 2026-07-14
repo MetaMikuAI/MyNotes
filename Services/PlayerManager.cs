@@ -52,6 +52,8 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
     public bool TryGetByProfileId(long profileId, out PlayerRecord player) =>
         _playersByProfileId.TryGetValue(profileId, out player!);
 
+    public static string GetInvitationCode(PlayerRecord player) => player.ProfileId.ToString("D10");
+
     public void LogPlayerReport(
         PlayerRecord reporter,
         string targetPlayerId,

@@ -164,6 +164,19 @@ app.MapGrpcUnary(
     });
 
 app.MapGrpcUnary(
+    "/app.invitation.InvitationService/GenerateInvitationCode",
+    Protocol.Invitation.GenerateInvitationCodeRequest.Parser,
+    (ctx, _) =>
+    {
+        var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        var player = players.GetFromRequest(ctx.Request);
+        return Task.FromResult(new Protocol.Invitation.GenerateInvitationCodeResponse
+        {
+            InvitationCode = PlayerManager.GetInvitationCode(player)
+        });
+    });
+
+app.MapGrpcUnary(
     "/app.invitation.InvitationService/UpdateInvitationView",
     Protocol.Invitation.UpdateInvitationViewRequest.Parser,
     static (_, _) => Task.FromResult(new Protocol.Invitation.UpdateInvitationViewResponse()));
