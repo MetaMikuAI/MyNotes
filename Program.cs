@@ -154,6 +154,11 @@ app.MapGrpcUnary(
     static (_, _) => Task.FromResult(new Protocol.Circle.GetRecommendedCircleListResponse()));
 
 app.MapGrpcUnary(
+    "/app.circle.CircleService/Search",
+    Protocol.Circle.SearchRequest.Parser,
+    static (_, _) => Task.FromResult(new Protocol.Circle.SearchResponse()));
+
+app.MapGrpcUnary(
     "/app.deck.DeckService/SaveDecks",
     Protocol.Deck.SaveDecksRequest.Parser,
     (ctx, request) =>
