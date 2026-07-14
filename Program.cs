@@ -220,6 +220,15 @@ app.MapGrpcUnary(
     static (_, _) => Task.FromResult(new Protocol.Live.CheckMaintenanceCasualMatchResponse()));
 
 app.MapGrpcUnary(
+    "/app.live.LiveService/GetBattleLiveSearchId",
+    Protocol.Live.GetBattleLiveSearchIdRequest.Parser,
+    (ctx, _) =>
+    {
+        var protocol = ctx.RequestServices.GetRequiredService<LiveProtocolBuilder>();
+        return Task.FromResult(protocol.GetBattleLiveSearchId());
+    });
+
+app.MapGrpcUnary(
     "/app.live.LiveService/SaveSetting",
     Protocol.Live.SaveSettingRequest.Parser,
     (ctx, request) =>
