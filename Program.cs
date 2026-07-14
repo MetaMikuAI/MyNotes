@@ -236,6 +236,17 @@ app.MapGrpcUnary(
     });
 
 app.MapGrpcUnary(
+    "/app.friend.FriendService/FriendRequestWithdrawal",
+    Protocol.Friend.FriendRequestWithdrawalRequest.Parser,
+    (ctx, request) =>
+    {
+        var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        var player = players.GetFromRequest(ctx.Request);
+        players.WithdrawFriendRequest(player, request.TargetPlayerId);
+        return Task.FromResult(new Protocol.Friend.FriendRequestWithdrawalResponse());
+    });
+
+app.MapGrpcUnary(
     "/app.friend.FriendService/PlayerReport",
     Protocol.Friend.PlayerReportRequest.Parser,
     (ctx, request) =>

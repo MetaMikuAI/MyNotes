@@ -159,6 +159,16 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
         }
     }
 
+    public void WithdrawFriendRequest(PlayerRecord requester, string targetPlayerId)
+    {
+        lock (_friendStateLock)
+        {
+            requester.PendingSentFriendPlayerIds.Remove(targetPlayerId);
+            if (_playersById.TryGetValue(targetPlayerId, out var target))
+                target.ReceivedFriendPlayerIds.Remove(requester.PlayerId);
+        }
+    }
+
     public void UpdateDisplayName(PlayerRecord player, string displayName)
     {
         if (string.IsNullOrWhiteSpace(displayName))
