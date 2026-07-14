@@ -52,6 +52,24 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
     public bool TryGetByProfileId(long profileId, out PlayerRecord player) =>
         _playersByProfileId.TryGetValue(profileId, out player!);
 
+    public void LogPlayerReport(
+        PlayerRecord reporter,
+        string targetPlayerId,
+        int reportType,
+        IEnumerable<long> reportIds)
+    {
+        var receivedAt = DateTimeOffset.UtcNow;
+        var reportIdSnapshot = reportIds.ToArray();
+        logger.LogInformation(
+            "Player report received at {ReceivedAt} from {ReporterPlayerId} for {TargetPlayerId} " +
+            "(type {ReportType}, report ids [{ReportIds}])",
+            receivedAt,
+            reporter.PlayerId,
+            targetPlayerId,
+            reportType,
+            string.Join(',', reportIdSnapshot));
+    }
+
     public void UpdateDisplayName(PlayerRecord player, string displayName)
     {
         if (string.IsNullOrWhiteSpace(displayName))

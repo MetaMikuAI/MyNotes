@@ -149,6 +149,21 @@ app.MapGrpcUnary(
     });
 
 app.MapGrpcUnary(
+    "/app.friend.FriendService/PlayerReport",
+    Protocol.Friend.PlayerReportRequest.Parser,
+    (ctx, request) =>
+    {
+        var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        var reporter = players.GetFromRequest(ctx.Request);
+        players.LogPlayerReport(
+            reporter,
+            request.TargetPlayerId,
+            request.ReportType,
+            request.ReportIds);
+        return Task.FromResult(new Protocol.Friend.PlayerReportResponse());
+    });
+
+app.MapGrpcUnary(
     "/app.circle.CircleService/GetRecommendedCircleList",
     Protocol.Circle.GetRecommendedCircleListRequest.Parser,
     static (_, _) => Task.FromResult(new Protocol.Circle.GetRecommendedCircleListResponse()));
