@@ -229,6 +229,11 @@ app.MapGrpcUnary(
     });
 
 app.MapGrpcUnary(
+    "/app.live.LiveService/StartBattleLive",
+    Protocol.Live.StartBattleLiveRequest.Parser,
+    static (_, _) => Task.FromResult(new Protocol.Live.StartBattleLiveResponse()));
+
+app.MapGrpcUnary(
     "/app.live.LiveService/SaveSetting",
     Protocol.Live.SaveSettingRequest.Parser,
     (ctx, request) =>
