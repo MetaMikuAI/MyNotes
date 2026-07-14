@@ -265,6 +265,22 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
         }
     }
 
+    public PlayerRecord[] GetCircleInvitationCandidates(PlayerRecord requester)
+    {
+        lock (_circleStateLock)
+        {
+            if (requester.CircleId == 0)
+                return [];
+
+            return _playersById.Values
+                .Where(player => !ReferenceEquals(player, requester) &&
+                    player.CircleId == 0 &&
+                    !requester.OutgoingCircleInvitationPlayerIds.Contains(player.PlayerId))
+                .OrderBy(player => player.ProfileId)
+                .ToArray();
+        }
+    }
+
     public void InviteCirclePlayer(PlayerRecord requester, string playerId)
     {
         lock (_circleStateLock)
