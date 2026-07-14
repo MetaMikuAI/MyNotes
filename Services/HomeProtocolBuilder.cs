@@ -4,9 +4,9 @@ using MyNotes.Models;
 
 namespace MyNotes.Services;
 
-public sealed class HomeProtocolBuilder
+public sealed class HomeProtocolBuilder(PlayerManager players, PlayerProtocolBuilder playerProtocol)
 {
-    public GetHomeResponse Get(HomeSnapshot snapshot)
+    public GetHomeResponse Get(HomeSnapshot snapshot, PlayerRecord player)
     {
         var response = new GetHomeResponse
         {
@@ -14,8 +14,14 @@ public sealed class HomeProtocolBuilder
             Friends = snapshot.HasFriends ? new Friends() : null
         };
 
-        for (var i = 0; i < snapshot.InvitationProfiles; i++)
-            response.Invitations.Add(new InvitationProfile());
+        foreach (var invitation in players.GetInvitationProfiles(player))
+        {
+            response.Invitations.Add(new InvitationProfile
+            {
+                PlayerProfile = playerProtocol.BuildSimpleProfile(invitation.Player),
+                EstablishmentAt = invitation.EstablishmentAt
+            });
+        }
 
         return response;
     }

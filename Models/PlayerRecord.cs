@@ -28,6 +28,9 @@ public sealed class PlayerRecord
     internal HashSet<long> OwnedStampIds { get; } = [];
     internal Dictionary<int, long[]> StampFavoriteGroups { get; } = [];
     internal Dictionary<int, string> StampFavoriteNames { get; } = [];
+    internal bool IsInvitationCodeInputAlready { get; set; }
+    internal Dictionary<string, long> InvitationEstablishments { get; } = [];
+    internal HashSet<string> NewInvitationPlayerIds { get; } = [];
     public ConcurrentDictionary<long, byte> ShownCarouselHelpIds { get; } = new();
     public ConcurrentDictionary<long, byte> ShownContentUnlockIds { get; } = new();
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;

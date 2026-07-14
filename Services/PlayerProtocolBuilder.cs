@@ -23,14 +23,23 @@ public sealed class PlayerProtocolBuilder(MasterDataService master)
         ProfileId = player.ProfileId
     };
 
-    public GetPlayerDataResponse GetPlayerData(PlayerRecord player) => new()
+    public GetPlayerDataResponse GetPlayerData(PlayerRecord player, PlayerManager players)
     {
-        PlayerData = BuildPlayerData(player),
-        Notification = new Notification(),
-        Limitation = new Limitation(),
-        Friends = new Friends(),
-        Invitation = new Invitation()
-    };
+        var invitationState = players.GetInvitationState(player);
+        var response = new GetPlayerDataResponse
+        {
+            PlayerData = BuildPlayerData(player),
+            Notification = new Notification(),
+            Limitation = new Limitation(),
+            Friends = new Friends(),
+            Invitation = new Invitation
+            {
+                IsInvitationCodeInputAlready = invitationState.InputAlready
+            }
+        };
+        response.Invitation.NewInvitationPlayerIds.Add(invitationState.NewPlayerIds);
+        return response;
+    }
 
     public PlayerSimpleProfile BuildSimpleProfile(PlayerRecord player)
     {

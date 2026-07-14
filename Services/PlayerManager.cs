@@ -14,6 +14,7 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
     private readonly ConcurrentDictionary<string, PlayerRecord> _playersById = new();
     private readonly ConcurrentDictionary<long, PlayerRecord> _playersByProfileId = new();
     private readonly ConcurrentDictionary<string, PlayerRecord> _playersByAuthorization = new(StringComparer.Ordinal);
+    private readonly object _invitationStateLock = new();
     private long _nextProfileId = 100000000;
 
     public PlayerRecord Register(string initialDataGroup)
@@ -53,6 +54,53 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
         _playersByProfileId.TryGetValue(profileId, out player!);
 
     public static string GetInvitationCode(PlayerRecord player) => player.ProfileId.ToString("D10");
+
+    public bool InputInvitationCode(PlayerRecord invitee, string invitationCode)
+    {
+        if (invitationCode.Length != 10 ||
+            invitationCode.Any(character => character is < '0' or > '9') ||
+            !long.TryParse(invitationCode, out var inviterProfileId))
+            return false;
+
+        lock (_invitationStateLock)
+        {
+            if (invitee.IsInvitationCodeInputAlready ||
+                !_playersByProfileId.TryGetValue(inviterProfileId, out var inviter) ||
+                ReferenceEquals(inviter, invitee))
+                return false;
+
+            invitee.IsInvitationCodeInputAlready = true;
+            var establishmentAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            inviter.InvitationEstablishments[invitee.PlayerId] = establishmentAt;
+            inviter.NewInvitationPlayerIds.Add(invitee.PlayerId);
+            return true;
+        }
+    }
+
+    public void MarkInvitationsViewed(PlayerRecord player, IEnumerable<string> playerIds)
+    {
+        lock (_invitationStateLock)
+        {
+            foreach (var playerId in playerIds)
+                player.NewInvitationPlayerIds.Remove(playerId);
+        }
+    }
+
+    public (bool InputAlready, string[] NewPlayerIds) GetInvitationState(PlayerRecord player)
+    {
+        lock (_invitationStateLock)
+            return (player.IsInvitationCodeInputAlready, player.NewInvitationPlayerIds.ToArray());
+    }
+
+    public (PlayerRecord Player, long EstablishmentAt)[] GetInvitationProfiles(PlayerRecord player)
+    {
+        lock (_invitationStateLock)
+        {
+            return player.InvitationEstablishments
+                .Select(pair => (_playersById[pair.Key], pair.Value))
+                .ToArray();
+        }
+    }
 
     public void LogPlayerReport(
         PlayerRecord reporter,

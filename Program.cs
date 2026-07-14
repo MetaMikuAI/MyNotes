@@ -104,7 +104,7 @@ app.MapGrpcUnary(
         var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
         var protocol = ctx.RequestServices.GetRequiredService<PlayerProtocolBuilder>();
         var player = players.GetFromRequest(ctx.Request);
-        return Task.FromResult(protocol.GetPlayerData(player));
+        return Task.FromResult(protocol.GetPlayerData(player, players));
     });
 
 app.MapGrpcUnary(
@@ -177,9 +177,27 @@ app.MapGrpcUnary(
     });
 
 app.MapGrpcUnary(
+    "/app.invitation.InvitationService/InputInvitationCode",
+    Protocol.Invitation.InputInvitationCodeRequest.Parser,
+    (ctx, request) =>
+    {
+        var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        var player = players.GetFromRequest(ctx.Request);
+        return Task.FromResult(new Protocol.Invitation.InputInvitationCodeResponse
+        {
+            IsEstablishment = players.InputInvitationCode(player, request.InvitationCode)
+        });
+    });
+
+app.MapGrpcUnary(
     "/app.invitation.InvitationService/UpdateInvitationView",
     Protocol.Invitation.UpdateInvitationViewRequest.Parser,
-    static (_, _) => Task.FromResult(new Protocol.Invitation.UpdateInvitationViewResponse()));
+    (ctx, request) =>
+    {
+        var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        players.MarkInvitationsViewed(players.GetFromRequest(ctx.Request), request.TargetPlayerIds);
+        return Task.FromResult(new Protocol.Invitation.UpdateInvitationViewResponse());
+    });
 
 app.MapGrpcUnary(
     "/app.circle.CircleService/GetRecommendedCircleList",
@@ -211,7 +229,7 @@ app.MapGrpcUnary(
         var home = ctx.RequestServices.GetRequiredService<HomeSnapshotService>();
         var protocol = ctx.RequestServices.GetRequiredService<HomeProtocolBuilder>();
         var player = players.GetFromRequest(ctx.Request);
-        return Task.FromResult(protocol.Get(home.GetFor(player)));
+        return Task.FromResult(protocol.Get(home.GetFor(player), player));
     });
 
 app.MapGrpcUnary(
