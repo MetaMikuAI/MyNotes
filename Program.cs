@@ -448,6 +448,11 @@ app.MapGrpcUnary(
     });
 
 app.MapGrpcUnary(
+    "/app.liveboost.LiveBoostService/LiveBoostReqCheck",
+    Empty.Parser,
+    static (_, _) => Task.FromResult(new Protocol.LiveBoost.LiveBoostReqCheckResponse()));
+
+app.MapGrpcUnary(
     "/app.livemusic.LiveMusicService/GetRanking",
     Protocol.LiveMusic.GetRankingRequest.Parser,
     static (_, _) => Task.FromResult(new Protocol.LiveMusic.GetRankingResponse()));
