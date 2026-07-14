@@ -227,6 +227,22 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
         }
     }
 
+    public void DeleteCircle(PlayerRecord player)
+    {
+        lock (_circleStateLock)
+        {
+            if (player.OwnedCircle == null)
+                return;
+
+            foreach (var target in ResolvePlayers(player.OutgoingCircleInvitationPlayerIds))
+                target.IncomingCircleInviterPlayerIds.Remove(player.PlayerId);
+
+            player.OutgoingCircleInvitationPlayerIds.Clear();
+            player.CircleId = 0;
+            player.OwnedCircle = null;
+        }
+    }
+
     public (Circle Circle, PlayerRecord Master)? GetCircleDetail(ulong circleId)
     {
         lock (_circleStateLock)

@@ -406,6 +406,16 @@ app.MapGrpcUnary(
     });
 
 app.MapGrpcUnary(
+    "/app.circle.CircleService/DeleteCircle",
+    Empty.Parser,
+    (ctx, _) =>
+    {
+        var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        players.DeleteCircle(players.GetFromRequest(ctx.Request));
+        return Task.FromResult(new Empty());
+    });
+
+app.MapGrpcUnary(
     "/app.circle.CircleService/UpdateCircleTop",
     Empty.Parser,
     (ctx, _) =>
