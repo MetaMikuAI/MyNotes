@@ -215,6 +215,11 @@ app.MapGrpcUnary(
     static (_, _) => Task.FromResult(new Protocol.Live.SkipFreeResponse()));
 
 app.MapGrpcUnary(
+    "/app.live.LiveService/CheckMaintenanceCasualMatch",
+    Protocol.Live.CheckMaintenanceCasualMatchRequest.Parser,
+    static (_, _) => Task.FromResult(new Protocol.Live.CheckMaintenanceCasualMatchResponse()));
+
+app.MapGrpcUnary(
     "/app.live.LiveService/SaveSetting",
     Protocol.Live.SaveSettingRequest.Parser,
     (ctx, request) =>
