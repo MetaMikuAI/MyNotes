@@ -36,6 +36,8 @@ public sealed class PlayerRecord
     internal HashSet<string> AcceptedFriendPlayerIds { get; } = [];
     internal HashSet<string> PendingSentFriendPlayerIds { get; } = [];
     internal HashSet<string> ReceivedFriendPlayerIds { get; } = [];
+    internal ulong CircleId { get; set; }
+    internal Circle? OwnedCircle { get; set; }
     public ConcurrentDictionary<long, byte> ShownCarouselHelpIds { get; } = new();
     public ConcurrentDictionary<long, byte> ShownContentUnlockIds { get; } = new();
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;

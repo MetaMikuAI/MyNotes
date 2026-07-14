@@ -16,6 +16,8 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
     private readonly ConcurrentDictionary<string, PlayerRecord> _playersByAuthorization = new(StringComparer.Ordinal);
     private readonly object _invitationStateLock = new();
     private readonly object _friendStateLock = new();
+    private readonly object _circleStateLock = new();
+    private ulong _nextCircleId = 1;
     private long _nextProfileId = 100000000;
 
     public PlayerRecord Register(string initialDataGroup)
@@ -200,6 +202,28 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
             player.AcceptedFriendPlayerIds.Remove(friendPlayerId);
             if (_playersById.TryGetValue(friendPlayerId, out var friend))
                 friend.AcceptedFriendPlayerIds.Remove(player.PlayerId);
+        }
+    }
+
+    public ulong CreateCircle(PlayerRecord player, SaveCircleParams parameters)
+    {
+        lock (_circleStateLock)
+        {
+            if (player.CircleId != 0)
+                return player.CircleId;
+
+            var circleId = _nextCircleId++;
+            player.CircleId = circleId;
+            player.OwnedCircle = new Circle
+            {
+                Id = circleId,
+                Name = parameters.Name,
+                Description = parameters.Description,
+                JoinRule = (uint)parameters.JoinRule,
+                PlayStyle = (uint)parameters.PlayStyle,
+                MemberCount = 1
+            };
+            return circleId;
         }
     }
 

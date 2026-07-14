@@ -328,6 +328,17 @@ app.MapGrpcUnary(
     static (_, _) => Task.FromResult(new Protocol.Circle.GetRecommendedCircleListResponse()));
 
 app.MapGrpcUnary(
+    "/app.circle.CircleService/CreateCircle",
+    Protocol.Circle.SaveCircleRequest.Parser,
+    (ctx, request) =>
+    {
+        var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        var player = players.GetFromRequest(ctx.Request);
+        var circleId = players.CreateCircle(player, request.Params ?? new App.Protobuf.Entity.SaveCircleParams());
+        return Task.FromResult(new Protocol.Circle.CreateCircleResponse { CircleId = circleId });
+    });
+
+app.MapGrpcUnary(
     "/app.circle.CircleService/Search",
     Protocol.Circle.SearchRequest.Parser,
     static (_, _) => Task.FromResult(new Protocol.Circle.SearchResponse()));
