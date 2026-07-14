@@ -371,7 +371,27 @@ app.MapGrpcUnary(
 app.MapGrpcUnary(
     "/app.circle.CircleService/GetCircle",
     Protocol.Circle.GetCircleSettingRequest.Parser,
-    static (_, _) => Task.FromResult(new Protocol.Circle.GetCircleSettingResponse()));
+    (ctx, _) =>
+    {
+        var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        var player = players.GetFromRequest(ctx.Request);
+        var circle = players.GetCircleDetail(player.CircleId);
+        if (circle == null)
+            return Task.FromResult(new Protocol.Circle.GetCircleSettingResponse());
+
+        var profiles = ctx.RequestServices.GetRequiredService<PlayerProtocolBuilder>();
+        return Task.FromResult(new Protocol.Circle.GetCircleSettingResponse
+        {
+            Circle = circle.Value.Circle,
+            CirclePlayer = new App.Protobuf.Entity.CirclePlayer
+            {
+                PlayerId = player.PlayerId,
+                CircleId = circle.Value.Circle.Id,
+                Auth = (uint)App.Protobuf.Entity.CircleAuth.Master,
+                Profile = profiles.BuildSimpleProfile(player)
+            }
+        });
+    });
 
 app.MapGrpcUnary(
     "/app.circle.CircleService/UpdateCircleTop",
