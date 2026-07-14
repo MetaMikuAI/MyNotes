@@ -220,6 +220,11 @@ app.MapGrpcUnary(
     static (_, _) => Task.FromResult(new Protocol.CircleInvitation.GetInvitationListResponse()));
 
 app.MapGrpcUnary(
+    "/app.circleinvitation.CircleInvitationService/GetInvitingPlayer",
+    Empty.Parser,
+    static (_, _) => Task.FromResult(new Protocol.CircleInvitation.GetInvitingPlayerResponse()));
+
+app.MapGrpcUnary(
     "/app.deck.DeckService/SaveDecks",
     Protocol.Deck.SaveDecksRequest.Parser,
     (ctx, request) =>
