@@ -280,6 +280,16 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
         }
     }
 
+    public void RevokeCircleInvitation(PlayerRecord requester, string playerId)
+    {
+        lock (_circleStateLock)
+        {
+            requester.OutgoingCircleInvitationPlayerIds.Remove(playerId);
+            if (_playersById.TryGetValue(playerId, out var target))
+                target.IncomingCircleInviterPlayerIds.Remove(requester.PlayerId);
+        }
+    }
+
     public PlayerRecord[] GetInvitedCirclePlayers(PlayerRecord requester)
     {
         lock (_circleStateLock)

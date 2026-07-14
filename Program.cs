@@ -478,6 +478,19 @@ app.MapGrpcUnary(
     });
 
 app.MapGrpcUnary(
+    "/app.circleinvitation.CircleInvitationService/RevokeCircleInvitation",
+    Protocol.CircleInvitation.RevokeCircleInvitationRequest.Parser,
+    (ctx, request) =>
+    {
+        if (request.HasPlayerId)
+        {
+            var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+            players.RevokeCircleInvitation(players.GetFromRequest(ctx.Request), request.PlayerId);
+        }
+        return Task.FromResult(new Empty());
+    });
+
+app.MapGrpcUnary(
     "/app.circleinvitation.CircleInvitationService/GetCircleInvitationRecommendList",
     Empty.Parser,
     static (_, _) => Task.FromResult(new Protocol.CircleInvitation.GetCircleInvitationRecommendListResponse()));
