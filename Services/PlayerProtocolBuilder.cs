@@ -23,6 +23,11 @@ public sealed class PlayerProtocolBuilder(MasterDataService master)
         Credential = BuildCredential(player)
     };
 
+    public RegisterDeviceForConnectedPlayerResponse RegisterDeviceForConnectedPlayer(PlayerRecord player) => new()
+    {
+        Credential = BuildCredential(player)
+    };
+
     public GetPlayerDataResponse GetPlayerData(PlayerRecord player, PlayerManager players)
     {
         var invitationState = players.GetInvitationState(player);

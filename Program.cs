@@ -145,6 +145,19 @@ app.MapGrpcUnary(
     });
 
 app.MapGrpcUnary(
+    "/app.player.PlayerService/RegisterDeviceForConnectedPlayer",
+    Protocol.Player.RegisterDeviceForConnectedPlayerRequest.Parser,
+    (ctx, request) =>
+    {
+        var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        var protocol = ctx.RequestServices.GetRequiredService<PlayerProtocolBuilder>();
+        return Task.FromResult(
+            players.TryGetConnectedPlayer(request.PlayerId, request.Password, out var player)
+                ? protocol.RegisterDeviceForConnectedPlayer(player)
+                : new Protocol.Player.RegisterDeviceForConnectedPlayerResponse());
+    });
+
+app.MapGrpcUnary(
     "/app.player.PlayerService/GetPlayerData",
     Protocol.Player.GetPlayerDataRequest.Parser,
     (ctx, _) =>
