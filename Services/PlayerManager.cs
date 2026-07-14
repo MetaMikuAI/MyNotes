@@ -227,6 +227,18 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
         }
     }
 
+    public (Circle Circle, PlayerRecord Master)? GetCircleDetail(ulong circleId)
+    {
+        lock (_circleStateLock)
+        {
+            var master = _playersById.Values.FirstOrDefault(player => player.CircleId == circleId);
+            if (master?.OwnedCircle == null)
+                return null;
+
+            return (master.OwnedCircle.Clone(), master);
+        }
+    }
+
     public void UpdateDisplayName(PlayerRecord player, string displayName)
     {
         if (string.IsNullOrWhiteSpace(displayName))
