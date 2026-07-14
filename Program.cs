@@ -332,6 +332,11 @@ app.MapGrpcUnary(
     static (_, _) => Task.FromResult(new Protocol.Live.CheckMaintenanceCasualMatchResponse()));
 
 app.MapGrpcUnary(
+    "/app.live.LiveService/CheckMaintenanceRankMatch",
+    Protocol.Live.CheckMaintenanceRankMatchRequest.Parser,
+    static (_, _) => Task.FromResult(new Protocol.Live.CheckMaintenanceRankMatchResponse()));
+
+app.MapGrpcUnary(
     "/app.live.LiveService/GetBattleLiveSearchId",
     Protocol.Live.GetBattleLiveSearchIdRequest.Parser,
     (ctx, _) =>
