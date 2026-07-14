@@ -240,6 +240,11 @@ app.MapGrpcUnary(
     static (_, _) => Task.FromResult(new Protocol.CircleJoinRequest.GetCircleJoinRequestListResponse()));
 
 app.MapGrpcUnary(
+    "/app.circleranking.CircleRankingService/GetCircleRanking",
+    Empty.Parser,
+    static (_, _) => Task.FromResult(new Protocol.CircleRanking.GetCircleRankingResponse()));
+
+app.MapGrpcUnary(
     "/app.deck.DeckService/SaveDecks",
     Protocol.Deck.SaveDecksRequest.Parser,
     (ctx, request) =>
