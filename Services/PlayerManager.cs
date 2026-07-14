@@ -169,6 +169,30 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
         }
     }
 
+    public PlayerRecord[] AnswerFriendRequests(PlayerRecord responder, IEnumerable<string> targetPlayerIds, bool answer)
+    {
+        lock (_friendStateLock)
+        {
+            var accepted = new List<PlayerRecord>();
+            foreach (var targetPlayerId in targetPlayerIds.Distinct(StringComparer.Ordinal))
+            {
+                if (!_playersById.TryGetValue(targetPlayerId, out var requester) ||
+                    !responder.ReceivedFriendPlayerIds.Remove(requester.PlayerId))
+                    continue;
+
+                requester.PendingSentFriendPlayerIds.Remove(responder.PlayerId);
+                if (answer)
+                {
+                    responder.AcceptedFriendPlayerIds.Add(requester.PlayerId);
+                    requester.AcceptedFriendPlayerIds.Add(responder.PlayerId);
+                    accepted.Add(requester);
+                }
+            }
+
+            return accepted.OrderBy(player => player.ProfileId).ToArray();
+        }
+    }
+
     public void UpdateDisplayName(PlayerRecord player, string displayName)
     {
         if (string.IsNullOrWhiteSpace(displayName))

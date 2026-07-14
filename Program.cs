@@ -247,6 +247,20 @@ app.MapGrpcUnary(
     });
 
 app.MapGrpcUnary(
+    "/app.friend.FriendService/FriendAnswer",
+    Protocol.Friend.FriendAnswerRequest.Parser,
+    (ctx, request) =>
+    {
+        var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        var protocol = ctx.RequestServices.GetRequiredService<PlayerProtocolBuilder>();
+        var player = players.GetFromRequest(ctx.Request);
+        var accepted = players.AnswerFriendRequests(player, request.TargetPlayerIds, request.Answer);
+        var response = new Protocol.Friend.FriendAnswerResponse();
+        response.FriendPlayerProfiles.Add(accepted.Select(protocol.BuildSimpleProfile));
+        return Task.FromResult(response);
+    });
+
+app.MapGrpcUnary(
     "/app.friend.FriendService/PlayerReport",
     Protocol.Friend.PlayerReportRequest.Parser,
     (ctx, request) =>
