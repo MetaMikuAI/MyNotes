@@ -118,6 +118,17 @@ app.MapGrpcUnary(
     });
 
 app.MapGrpcUnary(
+    "/app.player.PlayerService/RegisterConnection",
+    Protocol.Player.RegisterConnectionRequest.Parser,
+    (ctx, request) =>
+    {
+        var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        var player = players.GetFromRequest(ctx.Request);
+        players.RegisterConnection(player, request.Password);
+        return Task.FromResult(new Protocol.Player.RegisterConnectionResponse());
+    });
+
+app.MapGrpcUnary(
     "/app.player.PlayerService/GetPlayerData",
     Protocol.Player.GetPlayerDataRequest.Parser,
     (ctx, _) =>

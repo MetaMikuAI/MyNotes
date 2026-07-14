@@ -19,6 +19,8 @@ public sealed class PlayerRecord
     internal Dictionary<int, Deck> DeckOverrides { get; } = [];
     internal int MainDeckOverride { get; set; }
     internal object StoryStateLock { get; } = new();
+    internal object ConnectionStateLock { get; } = new();
+    internal string ConnectionPassword { get; set; } = "";
     internal Dictionary<long, StoryEpisode> SeenStoryEpisodes { get; } = [];
     internal Dictionary<long, StoryEpisode> SeenStoryFriendshipEpisodes { get; } = [];
     internal object ShopStateLock { get; } = new();

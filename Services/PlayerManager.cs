@@ -130,6 +130,12 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
         logger.LogInformation("Updated player {PlayerId} display name to {DisplayName}", player.PlayerId, player.DisplayName);
     }
 
+    public void RegisterConnection(PlayerRecord player, string password)
+    {
+        lock (player.ConnectionStateLock)
+            player.ConnectionPassword = password;
+    }
+
     public void UpdateLiveSetting(PlayerRecord player, byte[] settingAll)
     {
         player.LiveSettingAll = LiveSettingCodec.NormalizeLiveSettingAll(settingAll);
