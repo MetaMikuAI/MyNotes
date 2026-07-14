@@ -239,6 +239,18 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
         }
     }
 
+    public (Circle Circle, PlayerRecord Master)[] GetRecommendedCircles(PlayerRecord player)
+    {
+        lock (_circleStateLock)
+        {
+            return _playersById.Values
+                .Where(master => !ReferenceEquals(master, player) && master.OwnedCircle != null)
+                .Select(master => (Circle: master.OwnedCircle!.Clone(), Master: master))
+                .OrderBy(item => item.Circle.Id)
+                .ToArray();
+        }
+    }
+
     public void UpdateDisplayName(PlayerRecord player, string displayName)
     {
         if (string.IsNullOrWhiteSpace(displayName))
