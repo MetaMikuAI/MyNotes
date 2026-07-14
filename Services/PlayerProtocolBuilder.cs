@@ -14,13 +14,13 @@ public sealed class PlayerProtocolBuilder(MasterDataService master)
 
     public RegisterResponse Register(PlayerRecord player) => new()
     {
-        Credential = new PlayerCredential
-        {
-            Id = player.PlayerId,
-            Credential = player.AuthorizationKey,
-            DeviceId = player.DeviceId
-        },
+        Credential = BuildCredential(player),
         ProfileId = player.ProfileId
+    };
+
+    public RegisterDeviceResponse RegisterDevice(PlayerRecord player) => new()
+    {
+        Credential = BuildCredential(player)
     };
 
     public GetPlayerDataResponse GetPlayerData(PlayerRecord player, PlayerManager players)
@@ -238,6 +238,13 @@ public sealed class PlayerProtocolBuilder(MasterDataService master)
 
         return profile;
     }
+
+    private static PlayerCredential BuildCredential(PlayerRecord player) => new()
+    {
+        Id = player.PlayerId,
+        Credential = player.AuthorizationKey,
+        DeviceId = player.DeviceId
+    };
 
     private static MemberCard BuildMemberCard(int id, InitialMemberCardSeed seed, DateTimeOffset gainAt) => new()
     {
