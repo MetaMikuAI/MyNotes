@@ -8,6 +8,8 @@ namespace MyNotes.Services;
 
 public sealed class PlayerManager(ILogger<PlayerManager> logger)
 {
+    private const int FavoriteStampGroupCount = 3;
+    private const int FavoriteStampSlotCount = 20;
     private readonly ConcurrentDictionary<string, PlayerRecord> _playersById = new();
     private readonly ConcurrentDictionary<long, PlayerRecord> _playersByProfileId = new();
     private readonly ConcurrentDictionary<string, PlayerRecord> _playersByAuthorization = new(StringComparer.Ordinal);
@@ -29,6 +31,9 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
             CreatedAt = now,
             ProfileUpdatedAtUnixSeconds = now.ToUnixTimeSeconds()
         };
+
+        foreach (var stampId in ServerConfig.InitialStampIds)
+            player.OwnedStampIds.Add(stampId);
 
         Add(player);
         logger.LogInformation("Registered player {PlayerId} profile {ProfileId}", player.PlayerId, player.ProfileId);
@@ -164,6 +169,87 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
     {
         lock (player.ShopStateLock)
             return (player.ShopBirthYear, player.ShopBirthMonth);
+    }
+
+    public void SaveStampFavorites(PlayerRecord player, IEnumerable<UpdateStampFavorite> favorites)
+    {
+        var patches = new Dictionary<int, long[]>();
+        var oversizedGroupCount = 0;
+        var negativeStampIdCount = 0;
+        var invalidFavoriteIdCount = 0;
+        var duplicateGroupCount = 0;
+
+        foreach (var favorite in favorites)
+        {
+            if (favorite.FavoriteId is < 0 or >= FavoriteStampGroupCount)
+            {
+                invalidFavoriteIdCount++;
+                continue;
+            }
+
+            var stampIds = new long[FavoriteStampSlotCount];
+            var count = Math.Min(favorite.StampIds.Count, FavoriteStampSlotCount);
+            for (var index = 0; index < count; index++)
+            {
+                var stampId = favorite.StampIds[index];
+                if (stampId > 0)
+                    stampIds[index] = stampId;
+                else if (stampId < 0)
+                    negativeStampIdCount++;
+            }
+
+            if (favorite.StampIds.Count > FavoriteStampSlotCount)
+                oversizedGroupCount++;
+
+            if (!patches.TryAdd(favorite.FavoriteId, stampIds))
+            {
+                patches[favorite.FavoriteId] = stampIds;
+                duplicateGroupCount++;
+            }
+        }
+
+        var unknownStampIdCount = 0;
+        lock (player.StampStateLock)
+        {
+            foreach (var (favoriteId, stampIds) in patches)
+            {
+                for (var index = 0; index < stampIds.Length; index++)
+                {
+                    if (stampIds[index] > 0 && !player.OwnedStampIds.Contains(stampIds[index]))
+                    {
+                        stampIds[index] = 0;
+                        unknownStampIdCount++;
+                    }
+                }
+
+                player.StampFavoriteGroups[favoriteId] = stampIds;
+            }
+        }
+
+        logger.LogInformation(
+            "Updated player {PlayerId} stamp favorites ({GroupCount} groups)",
+            player.PlayerId,
+            patches.Count);
+
+        var wasNormalized = oversizedGroupCount > 0 ||
+            negativeStampIdCount > 0 ||
+            invalidFavoriteIdCount > 0 ||
+            duplicateGroupCount > 0 ||
+            unknownStampIdCount > 0;
+        if (wasNormalized)
+        {
+            logger.LogWarning(
+                "Normalized stamp favorites for player {PlayerId} " +
+                "({OversizedGroupCount} oversized groups, {NegativeStampIdCount} negative stamp ids, " +
+                "{InvalidFavoriteIdCount} invalid favorite ids, {DuplicateGroupCount} duplicate groups, " +
+                "{UnknownStampIdCount} unknown stamp ids)",
+                player.PlayerId,
+                oversizedGroupCount,
+                negativeStampIdCount,
+                invalidFavoriteIdCount,
+                duplicateGroupCount,
+                unknownStampIdCount);
+        }
     }
 
     public void SaveShownCarouselHelps(PlayerRecord player, IEnumerable<long> masterIds)

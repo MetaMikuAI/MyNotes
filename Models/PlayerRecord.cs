@@ -24,6 +24,9 @@ public sealed class PlayerRecord
     internal object ShopStateLock { get; } = new();
     internal int ShopBirthYear { get; set; }
     internal int ShopBirthMonth { get; set; }
+    internal object StampStateLock { get; } = new();
+    internal HashSet<long> OwnedStampIds { get; } = [];
+    internal Dictionary<int, long[]> StampFavoriteGroups { get; } = [];
     public ConcurrentDictionary<long, byte> ShownCarouselHelpIds { get; } = new();
     public ConcurrentDictionary<long, byte> ShownContentUnlockIds { get; } = new();
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;

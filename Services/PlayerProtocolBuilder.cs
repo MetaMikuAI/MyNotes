@@ -121,6 +121,9 @@ public sealed class PlayerProtocolBuilder(MasterDataService master)
             }
         }
 
+        foreach (var stamp in BuildStampState(player))
+            data.Stamps.Add(stamp);
+
         StoryEpisode[] seenStoryEpisodes;
         StoryEpisode[] seenStoryFriendshipEpisodes;
         lock (player.StoryStateLock)
@@ -146,6 +149,38 @@ public sealed class PlayerProtocolBuilder(MasterDataService master)
             data.ShownContentUnlocks.Add(new ContentUnlock { MasterId = masterId });
 
         return data;
+    }
+
+    private static IReadOnlyList<Stamp> BuildStampState(PlayerRecord player)
+    {
+        long[] ownedStampIds;
+        Dictionary<int, long[]> favoriteGroups;
+        lock (player.StampStateLock)
+        {
+            ownedStampIds = player.OwnedStampIds.Order().ToArray();
+            favoriteGroups = player.StampFavoriteGroups.ToDictionary(
+                pair => pair.Key,
+                pair => (long[])pair.Value.Clone());
+        }
+
+        var stamps = ownedStampIds.ToDictionary(id => id, id => new Stamp { Id = id });
+        foreach (var (favoriteId, stampIds) in favoriteGroups.OrderBy(pair => pair.Key))
+        {
+            for (var index = 0; index < stampIds.Length; index++)
+            {
+                var stampId = stampIds[index];
+                if (stampId <= 0 || !stamps.TryGetValue(stampId, out var stamp))
+                    continue;
+
+                stamp.Favorites.Add(new FavoriteIndex
+                {
+                    FavoriteId = favoriteId,
+                    SlotIndex = index + 1
+                });
+            }
+        }
+
+        return stamps.Values.OrderBy(stamp => stamp.Id).ToArray();
     }
 
     private static PlayerSimpleProfile BuildSimpleProfile(

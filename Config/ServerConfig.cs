@@ -6,6 +6,7 @@ public static class ServerConfig
     public static int HttpPort { get; private set; } = 9832;
     public static string MasterVersion { get; private set; } = "9c23d88a191e4648f0a28f4bbd4edb6403d5adf99ac5793efd7cc1cb3d49104c";
     public static string InitialDataGroup { get; private set; } = "cbt_0.1.8_";
+    public static IReadOnlyList<long> InitialStampIds { get; private set; } = [];
     public static string BasicAuthUser { get; private set; } = "";
     public static string BasicAuthPass { get; private set; } = "";
     public static bool RequireBasicAuth { get; private set; }
@@ -21,6 +22,11 @@ public static class ServerConfig
         HttpPort = configuration.GetValue("Server:HttpPort", HttpPort);
         MasterVersion = configuration.GetValue("Game:MasterVersion", MasterVersion) ?? MasterVersion;
         InitialDataGroup = configuration.GetValue("Game:InitialDataGroup", InitialDataGroup) ?? InitialDataGroup;
+        InitialStampIds = configuration.GetSection("Game:InitialStampIds").Get<long[]>()?
+            .Where(id => id > 0)
+            .Distinct()
+            .Order()
+            .ToArray() ?? [];
         BasicAuthUser = configuration.GetValue("Game:BasicAuthUser", BasicAuthUser) ?? BasicAuthUser;
         BasicAuthPass = configuration.GetValue("Game:BasicAuthPass", BasicAuthPass) ?? BasicAuthPass;
         RequireBasicAuth = configuration.GetValue("Game:RequireBasicAuth", RequireBasicAuth);
