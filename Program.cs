@@ -436,12 +436,46 @@ app.MapGrpcUnary(
 app.MapGrpcUnary(
     "/app.circleinvitation.CircleInvitationService/GetInvitationList",
     Protocol.CircleInvitation.GetInvitationListRequest.Parser,
-    static (_, _) => Task.FromResult(new Protocol.CircleInvitation.GetInvitationListResponse()));
+    (ctx, _) =>
+    {
+        var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        var profiles = ctx.RequestServices.GetRequiredService<PlayerProtocolBuilder>();
+        var response = new Protocol.CircleInvitation.GetInvitationListResponse();
+        response.Invitations.Add(players.GetIncomingCircleInvitations(players.GetFromRequest(ctx.Request)).Select(item =>
+            new App.Protobuf.Entity.CircleInvitation
+            {
+                CircleId = item.Circle.Id,
+                PlayerId = item.Inviter.PlayerId,
+                CircleDetail = item.Circle,
+                Profile = profiles.BuildSimpleProfile(item.Inviter)
+            }));
+        return Task.FromResult(response);
+    });
 
 app.MapGrpcUnary(
     "/app.circleinvitation.CircleInvitationService/GetInvitingPlayer",
     Empty.Parser,
-    static (_, _) => Task.FromResult(new Protocol.CircleInvitation.GetInvitingPlayerResponse()));
+    (ctx, _) =>
+    {
+        var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        var profiles = ctx.RequestServices.GetRequiredService<PlayerProtocolBuilder>();
+        var response = new Protocol.CircleInvitation.GetInvitingPlayerResponse();
+        response.PlayerBasicProfiles.Add(players.GetInvitedCirclePlayers(players.GetFromRequest(ctx.Request)).Select(profiles.BuildSimpleProfile));
+        return Task.FromResult(response);
+    });
+
+app.MapGrpcUnary(
+    "/app.circleinvitation.CircleInvitationService/InviteCircle",
+    Protocol.CircleInvitation.InviteCircleRequest.Parser,
+    (ctx, request) =>
+    {
+        if (request.HasPlayerId)
+        {
+            var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+            players.InviteCirclePlayer(players.GetFromRequest(ctx.Request), request.PlayerId);
+        }
+        return Task.FromResult(new Empty());
+    });
 
 app.MapGrpcUnary(
     "/app.circleinvitation.CircleInvitationService/GetCircleInvitationRecommendList",

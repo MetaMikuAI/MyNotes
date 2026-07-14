@@ -265,6 +265,39 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
         }
     }
 
+    public void InviteCirclePlayer(PlayerRecord requester, string playerId)
+    {
+        lock (_circleStateLock)
+        {
+            if (requester.CircleId == 0 ||
+                !_playersById.TryGetValue(playerId, out var target) ||
+                ReferenceEquals(requester, target) ||
+                target.CircleId != 0)
+                return;
+
+            requester.OutgoingCircleInvitationPlayerIds.Add(target.PlayerId);
+            target.IncomingCircleInviterPlayerIds.Add(requester.PlayerId);
+        }
+    }
+
+    public PlayerRecord[] GetInvitedCirclePlayers(PlayerRecord requester)
+    {
+        lock (_circleStateLock)
+            return ResolvePlayers(requester.OutgoingCircleInvitationPlayerIds);
+    }
+
+    public (Circle Circle, PlayerRecord Inviter)[] GetIncomingCircleInvitations(PlayerRecord player)
+    {
+        lock (_circleStateLock)
+        {
+            return ResolvePlayers(player.IncomingCircleInviterPlayerIds)
+                .Where(inviter => inviter.OwnedCircle != null)
+                .Select(inviter => (Circle: inviter.OwnedCircle!.Clone(), Inviter: inviter))
+                .OrderBy(item => item.Circle.Id)
+                .ToArray();
+        }
+    }
+
     public void UpdateDisplayName(PlayerRecord player, string displayName)
     {
         if (string.IsNullOrWhiteSpace(displayName))
@@ -297,18 +330,23 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
         {
             lock (_invitationStateLock)
             {
-                foreach (var other in _playersById.Values)
+                lock (_circleStateLock)
                 {
-                    other.InvitationEstablishments.Remove(player.PlayerId);
-                    other.NewInvitationPlayerIds.Remove(player.PlayerId);
-                    other.AcceptedFriendPlayerIds.Remove(player.PlayerId);
-                    other.PendingSentFriendPlayerIds.Remove(player.PlayerId);
-                    other.ReceivedFriendPlayerIds.Remove(player.PlayerId);
-                }
+                    foreach (var other in _playersById.Values)
+                    {
+                        other.InvitationEstablishments.Remove(player.PlayerId);
+                        other.NewInvitationPlayerIds.Remove(player.PlayerId);
+                        other.AcceptedFriendPlayerIds.Remove(player.PlayerId);
+                        other.PendingSentFriendPlayerIds.Remove(player.PlayerId);
+                        other.ReceivedFriendPlayerIds.Remove(player.PlayerId);
+                        other.OutgoingCircleInvitationPlayerIds.Remove(player.PlayerId);
+                        other.IncomingCircleInviterPlayerIds.Remove(player.PlayerId);
+                    }
 
-                _playersByAuthorization.TryRemove(player.AuthorizationKey, out _);
-                _playersByProfileId.TryRemove(player.ProfileId, out _);
-                _playersById.TryRemove(player.PlayerId, out _);
+                    _playersByAuthorization.TryRemove(player.AuthorizationKey, out _);
+                    _playersByProfileId.TryRemove(player.ProfileId, out _);
+                    _playersById.TryRemove(player.PlayerId, out _);
+                }
             }
         }
 
