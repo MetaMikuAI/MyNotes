@@ -146,6 +146,24 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
                    string.Equals(player.ConnectionPassword, password, StringComparison.Ordinal);
     }
 
+    public void Remove(PlayerRecord player)
+    {
+        lock (_invitationStateLock)
+        {
+            foreach (var other in _playersById.Values)
+            {
+                other.InvitationEstablishments.Remove(player.PlayerId);
+                other.NewInvitationPlayerIds.Remove(player.PlayerId);
+            }
+
+            _playersByAuthorization.TryRemove(player.AuthorizationKey, out _);
+            _playersByProfileId.TryRemove(player.ProfileId, out _);
+            _playersById.TryRemove(player.PlayerId, out _);
+        }
+
+        logger.LogInformation("Removed player {PlayerId} profile {ProfileId}", player.PlayerId, player.ProfileId);
+    }
+
     public void UpdateLiveSetting(PlayerRecord player, byte[] settingAll)
     {
         player.LiveSettingAll = LiveSettingCodec.NormalizeLiveSettingAll(settingAll);

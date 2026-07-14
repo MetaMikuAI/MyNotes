@@ -158,6 +158,16 @@ app.MapGrpcUnary(
     });
 
 app.MapGrpcUnary(
+    "/app.player.PlayerService/RemovePlayerData",
+    Protocol.Player.RemovePlayerDataRequest.Parser,
+    (ctx, _) =>
+    {
+        var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        players.Remove(players.GetFromRequest(ctx.Request));
+        return Task.FromResult(new Protocol.Player.RemovePlayerDataResponse());
+    });
+
+app.MapGrpcUnary(
     "/app.player.PlayerService/GetPlayerData",
     Protocol.Player.GetPlayerDataRequest.Parser,
     (ctx, _) =>
