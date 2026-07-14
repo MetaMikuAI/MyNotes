@@ -121,8 +121,11 @@ public sealed class PlayerProtocolBuilder(MasterDataService master)
             }
         }
 
-        foreach (var stamp in BuildStampState(player))
+        var (stamps, stampFavoriteNames) = BuildStampState(player);
+        foreach (var stamp in stamps)
             data.Stamps.Add(stamp);
+        foreach (var favoriteName in stampFavoriteNames)
+            data.StampFavoriteNames.Add(favoriteName);
 
         StoryEpisode[] seenStoryEpisodes;
         StoryEpisode[] seenStoryFriendshipEpisodes;
@@ -151,16 +154,19 @@ public sealed class PlayerProtocolBuilder(MasterDataService master)
         return data;
     }
 
-    private static IReadOnlyList<Stamp> BuildStampState(PlayerRecord player)
+    private static (IReadOnlyList<Stamp> Stamps, IReadOnlyList<StampFavoriteName> FavoriteNames) BuildStampState(
+        PlayerRecord player)
     {
         long[] ownedStampIds;
         Dictionary<int, long[]> favoriteGroups;
+        Dictionary<int, string> favoriteNames;
         lock (player.StampStateLock)
         {
             ownedStampIds = player.OwnedStampIds.Order().ToArray();
             favoriteGroups = player.StampFavoriteGroups.ToDictionary(
                 pair => pair.Key,
                 pair => (long[])pair.Value.Clone());
+            favoriteNames = new Dictionary<int, string>(player.StampFavoriteNames);
         }
 
         var stamps = ownedStampIds.ToDictionary(id => id, id => new Stamp { Id = id });
@@ -180,7 +186,16 @@ public sealed class PlayerProtocolBuilder(MasterDataService master)
             }
         }
 
-        return stamps.Values.OrderBy(stamp => stamp.Id).ToArray();
+        var names = favoriteNames
+            .OrderBy(pair => pair.Key)
+            .Select(pair => new StampFavoriteName
+            {
+                FavoriteId = pair.Key,
+                Name = pair.Value
+            })
+            .ToArray();
+
+        return (stamps.Values.OrderBy(stamp => stamp.Id).ToArray(), names);
     }
 
     private static PlayerSimpleProfile BuildSimpleProfile(

@@ -9,6 +9,7 @@ namespace MyNotes.Services;
 public sealed class PlayerManager(ILogger<PlayerManager> logger)
 {
     private const int FavoriteStampGroupCount = 3;
+    private const int FavoriteStampNameMaxLength = 6;
     private const int FavoriteStampSlotCount = 20;
     private readonly ConcurrentDictionary<string, PlayerRecord> _playersById = new();
     private readonly ConcurrentDictionary<long, PlayerRecord> _playersByProfileId = new();
@@ -250,6 +251,32 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
                 duplicateGroupCount,
                 unknownStampIdCount);
         }
+    }
+
+    public void SaveStampFavoriteName(PlayerRecord player, int favoriteId, string name)
+    {
+        if (favoriteId is < 0 or >= FavoriteStampGroupCount || name.Length > FavoriteStampNameMaxLength)
+        {
+            logger.LogWarning(
+                "Ignored invalid stamp favorite name for player {PlayerId} (favorite {FavoriteId}, length {NameLength})",
+                player.PlayerId,
+                favoriteId,
+                name.Length);
+            return;
+        }
+
+        lock (player.StampStateLock)
+        {
+            if (name.Length == 0)
+                player.StampFavoriteNames.Remove(favoriteId);
+            else
+                player.StampFavoriteNames[favoriteId] = name;
+        }
+
+        logger.LogInformation(
+            "Updated player {PlayerId} stamp favorite {FavoriteId} name",
+            player.PlayerId,
+            favoriteId);
     }
 
     public void SaveShownCarouselHelps(PlayerRecord player, IEnumerable<long> masterIds)

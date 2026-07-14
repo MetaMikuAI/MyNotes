@@ -235,6 +235,17 @@ app.MapGrpcUnary(
     });
 
 app.MapGrpcUnary(
+    "/app.stamp.StampService/UpdateStampFavoriteName",
+    Protocol.Stamp.UpdateStampFavoriteNameRequest.Parser,
+    (ctx, request) =>
+    {
+        var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        var player = players.GetFromRequest(ctx.Request);
+        players.SaveStampFavoriteName(player, request.FavoriteId, request.Name);
+        return Task.FromResult(new Protocol.Stamp.UpdateStampFavoriteNameResponse());
+    });
+
+app.MapGrpcUnary(
     "/app.gacha.GachaService/History",
     Protocol.Gacha.HistoryRequest.Parser,
     static (_, _) => Task.FromResult(new Protocol.Gacha.HistoryResponse()));

@@ -27,6 +27,7 @@ public sealed class PlayerRecord
     internal object StampStateLock { get; } = new();
     internal HashSet<long> OwnedStampIds { get; } = [];
     internal Dictionary<int, long[]> StampFavoriteGroups { get; } = [];
+    internal Dictionary<int, string> StampFavoriteNames { get; } = [];
     public ConcurrentDictionary<long, byte> ShownCarouselHelpIds { get; } = new();
     public ConcurrentDictionary<long, byte> ShownContentUnlockIds { get; } = new();
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
