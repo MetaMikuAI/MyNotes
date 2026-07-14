@@ -467,6 +467,19 @@ app.MapGrpcUnary(
     static (_, _) => Task.FromResult(new Protocol.CirclePlayer.AutoTransferMasterResponse()));
 
 app.MapGrpcUnary(
+    "/app.circleplayer.CirclePlayerService/GetPlayerAuth",
+    Empty.Parser,
+    (ctx, _) =>
+    {
+        var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        var player = players.GetFromRequest(ctx.Request);
+        var auth = player.CircleId == 0
+            ? App.Protobuf.Entity.CircleAuth.Normal
+            : App.Protobuf.Entity.CircleAuth.Master;
+        return Task.FromResult(new Protocol.CirclePlayer.GetPlayerAuthResponse { Auth = auth });
+    });
+
+app.MapGrpcUnary(
     "/app.deck.DeckService/SaveDecks",
     Protocol.Deck.SaveDecksRequest.Parser,
     (ctx, request) =>
