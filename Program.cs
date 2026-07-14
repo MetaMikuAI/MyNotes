@@ -245,6 +245,11 @@ app.MapGrpcUnary(
     static (_, _) => Task.FromResult(new Protocol.CircleRanking.GetCircleRankingResponse()));
 
 app.MapGrpcUnary(
+    "/app.circlerankupreward.CircleRankUpRewardService/GetCircleRankUpRewardReceived",
+    Empty.Parser,
+    static (_, _) => Task.FromResult(new Protocol.CircleRankUpReward.GetCircleRankUpRewardReceivedResponse()));
+
+app.MapGrpcUnary(
     "/app.deck.DeckService/SaveDecks",
     Protocol.Deck.SaveDecksRequest.Parser,
     (ctx, request) =>
