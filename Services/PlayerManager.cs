@@ -227,6 +227,20 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
         }
     }
 
+    public void EditCircle(PlayerRecord player, SaveCircleParams parameters)
+    {
+        lock (_circleStateLock)
+        {
+            if (player.OwnedCircle == null)
+                return;
+
+            player.OwnedCircle.Name = parameters.Name;
+            player.OwnedCircle.Description = parameters.Description;
+            player.OwnedCircle.JoinRule = (uint)parameters.JoinRule;
+            player.OwnedCircle.PlayStyle = (uint)parameters.PlayStyle;
+        }
+    }
+
     public void DeleteCircle(PlayerRecord player)
     {
         lock (_circleStateLock)

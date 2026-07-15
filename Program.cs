@@ -351,6 +351,20 @@ app.MapGrpcUnary(
     });
 
 app.MapGrpcUnary(
+    "/app.circle.CircleService/EditCircle",
+    Protocol.Circle.SaveCircleRequest.Parser,
+    (ctx, request) =>
+    {
+        if (request.Params != null)
+        {
+            var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+            players.EditCircle(players.GetFromRequest(ctx.Request), request.Params);
+        }
+
+        return Task.FromResult(new Protocol.Circle.EditCircleResponse());
+    });
+
+app.MapGrpcUnary(
     "/app.circle.CircleService/Search",
     Protocol.Circle.SearchRequest.Parser,
     static (_, _) => Task.FromResult(new Protocol.Circle.SearchResponse()));
