@@ -281,6 +281,36 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
         }
     }
 
+    public (Circle Circle, PlayerRecord Master)[] SearchCircles(PlayerRecord player, SearchOptions? options)
+    {
+        var circles = GetRecommendedCircles(player);
+        return options == null
+            ? circles
+            : circles.Where(item => MatchesCircleSearch(item.Circle, options)).ToArray();
+    }
+
+    private static bool MatchesCircleSearch(Circle circle, SearchOptions options)
+    {
+        if (!string.IsNullOrEmpty(options.Name) &&
+            !circle.Name.Contains(options.Name, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        if (options.JoinRule != JoinRule.Unspecified && circle.JoinRule != (uint)options.JoinRule)
+            return false;
+
+        if (options.PlayStyle != PlayStyle.Unspecified && circle.PlayStyle != (uint)options.PlayStyle)
+            return false;
+
+        return options.MemberRange switch
+        {
+            MemberRange.Unspecified => true,
+            MemberRange._1 => circle.MemberCount is >= 1 and <= 10,
+            MemberRange._2 => circle.MemberCount is >= 11 and <= 20,
+            MemberRange._3 => circle.MemberCount is >= 21 and <= 30,
+            _ => false
+        };
+    }
+
     public PlayerRecord? GetInvitableCirclePlayer(PlayerRecord requester, string playerId)
     {
         lock (_circleStateLock)

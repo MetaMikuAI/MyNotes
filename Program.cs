@@ -367,7 +367,19 @@ app.MapGrpcUnary(
 app.MapGrpcUnary(
     "/app.circle.CircleService/Search",
     Protocol.Circle.SearchRequest.Parser,
-    static (_, _) => Task.FromResult(new Protocol.Circle.SearchResponse()));
+    (ctx, request) =>
+    {
+        var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        var profiles = ctx.RequestServices.GetRequiredService<PlayerProtocolBuilder>();
+        var response = new Protocol.Circle.SearchResponse();
+        response.Circles.Add(players.SearchCircles(players.GetFromRequest(ctx.Request), request.Options).Select(item =>
+            new App.Protobuf.Entity.CircleWithMasterPlayer
+            {
+                Circle = item.Circle,
+                Profile = profiles.BuildSimpleProfile(item.Master)
+            }));
+        return Task.FromResult(response);
+    });
 
 app.MapGrpcUnary(
     "/app.circle.CircleService/GetCircleDetail",
