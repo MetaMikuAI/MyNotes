@@ -104,6 +104,9 @@ public sealed class PlayerProtocolBuilder(MasterDataService master)
             Comeback = new Comeback()
         };
 
+        if (player.CircleId != 0)
+            data.CircleId = player.CircleId;
+
         for (var i = 0; i < initialData.MemberCards.Count; i++)
             data.MemberCards.Add(BuildMemberCard(i + 1, initialData.MemberCards[i], player.CreatedAt));
 
