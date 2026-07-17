@@ -350,6 +350,17 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
         }
     }
 
+    public void RevokeCircleJoinRequest(PlayerRecord requester, string playerId)
+    {
+        lock (_circleStateLock)
+        {
+            if (requester.OwnedCircle == null)
+                return;
+
+            requester.PendingCircleApplicantIds.Remove(playerId);
+        }
+    }
+
     public PlayerRecord[] GetCircleJoinRequests(PlayerRecord player)
     {
         lock (_circleStateLock)
