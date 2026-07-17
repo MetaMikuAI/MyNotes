@@ -327,6 +327,21 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
         }
     }
 
+    public void UnsetCircleSubmaster(PlayerRecord requester, string playerId)
+    {
+        lock (_circleStateLock)
+        {
+            if (requester.OwnedCircle == null ||
+                !_playersById.TryGetValue(playerId, out var target) ||
+                ReferenceEquals(requester, target) ||
+                target.OwnedCircle != null ||
+                target.CircleId != requester.OwnedCircle.Id)
+                return;
+
+            requester.CircleSubmasterPlayerIds.Remove(target.PlayerId);
+        }
+    }
+
     public (Circle Circle, PlayerRecord Master)? GetCircleDetail(ulong circleId)
     {
         var snapshot = GetCircleSnapshot(circleId);
