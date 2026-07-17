@@ -8,6 +8,16 @@ namespace MyNotes.Services;
 
 public sealed class PlayerManager(ILogger<PlayerManager> logger)
 {
+    public sealed record CircleSnapshot(Circle Circle, PlayerRecord Master, PlayerRecord[] Members);
+
+    public enum CircleJoinOutcome
+    {
+        MissingCircle,
+        Joined,
+        Pending,
+        Rejected
+    }
+
     private const int FavoriteStampGroupCount = 3;
     private const int FavoriteStampNameMaxLength = 6;
     private const int FavoriteStampSlotCount = 20;
@@ -213,6 +223,8 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
                 return player.CircleId;
 
             var circleId = _nextCircleId++;
+            ClearPendingApplicantUnsafe(player.PlayerId);
+            RemoveCircleInvitationEdgesUnsafe(player);
             player.CircleId = circleId;
             player.OwnedCircle = new Circle
             {
@@ -245,13 +257,22 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
     {
         lock (_circleStateLock)
         {
-            if (player.OwnedCircle == null)
+            var circleId = player.OwnedCircle?.Id ?? 0;
+            if (circleId == 0)
                 return;
 
-            foreach (var target in ResolvePlayers(player.OutgoingCircleInvitationPlayerIds))
-                target.IncomingCircleInviterPlayerIds.Remove(player.PlayerId);
+            foreach (var other in _playersById.Values)
+            {
+                if (other.CircleId == circleId)
+                    other.CircleId = 0;
 
+                other.OutgoingCircleInvitationPlayerIds.Remove(player.PlayerId);
+                other.IncomingCircleInviterPlayerIds.Remove(player.PlayerId);
+            }
+
+            player.PendingCircleApplicantIds.Clear();
             player.OutgoingCircleInvitationPlayerIds.Clear();
+            player.IncomingCircleInviterPlayerIds.Clear();
             player.CircleId = 0;
             player.OwnedCircle = null;
         }
@@ -259,13 +280,96 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
 
     public (Circle Circle, PlayerRecord Master)? GetCircleDetail(ulong circleId)
     {
+        var snapshot = GetCircleSnapshot(circleId);
+        return snapshot == null ? null : (snapshot.Circle, snapshot.Master);
+    }
+
+    public CircleSnapshot? GetCircleSnapshot(ulong circleId)
+    {
+        lock (_circleStateLock)
+            return BuildCircleSnapshotUnsafe(circleId);
+    }
+
+    public App.Protobuf.Entity.CircleAuth GetCircleAuth(PlayerRecord player)
+    {
         lock (_circleStateLock)
         {
-            var master = _playersById.Values.FirstOrDefault(player => player.CircleId == circleId);
-            if (master?.OwnedCircle == null)
-                return null;
+            var snapshot = BuildCircleSnapshotUnsafe(player.CircleId);
+            if (snapshot == null || !snapshot.Members.Contains(player))
+                return App.Protobuf.Entity.CircleAuth.Normal;
 
-            return (master.OwnedCircle.Clone(), master);
+            return ReferenceEquals(snapshot.Master, player)
+                ? App.Protobuf.Entity.CircleAuth.Master
+                : App.Protobuf.Entity.CircleAuth.Normal;
+        }
+    }
+
+    public CircleJoinOutcome JoinCircle(PlayerRecord player, ulong circleId)
+    {
+        lock (_circleStateLock)
+        {
+            var master = _playersById.Values.FirstOrDefault(candidate => candidate.OwnedCircle?.Id == circleId);
+            if (circleId == 0 || master?.OwnedCircle == null)
+                return CircleJoinOutcome.MissingCircle;
+
+            if (player.CircleId == circleId)
+            {
+                ClearPendingApplicantUnsafe(player.PlayerId);
+                RemoveCircleInvitationEdgesUnsafe(player);
+                UpdateCircleMemberCountUnsafe(master);
+                return CircleJoinOutcome.Joined;
+            }
+
+            if (player.CircleId != 0)
+                return CircleJoinOutcome.Rejected;
+
+            var hasInvitation = master.OutgoingCircleInvitationPlayerIds.Contains(player.PlayerId) &&
+                player.IncomingCircleInviterPlayerIds.Contains(master.PlayerId);
+            var joinRule = (JoinRule)master.OwnedCircle.JoinRule;
+            switch (joinRule)
+            {
+                case JoinRule.Request when !hasInvitation:
+                    master.PendingCircleApplicantIds.Add(player.PlayerId);
+                    return CircleJoinOutcome.Pending;
+                case JoinRule.Invite when !hasInvitation:
+                    return CircleJoinOutcome.Rejected;
+                case JoinRule.Auto:
+                case JoinRule.Request:
+                case JoinRule.Invite:
+                case JoinRule.Unspecified:
+                    break;
+                default:
+                    return CircleJoinOutcome.Rejected;
+            }
+
+            player.CircleId = circleId;
+            ClearPendingApplicantUnsafe(player.PlayerId);
+            RemoveCircleInvitationEdgesUnsafe(player);
+            UpdateCircleMemberCountUnsafe(master);
+            return CircleJoinOutcome.Joined;
+        }
+    }
+
+    public PlayerRecord[] GetCircleJoinRequests(PlayerRecord player)
+    {
+        lock (_circleStateLock)
+        {
+            if (player.OwnedCircle == null)
+                return [];
+
+            var applicants = new List<PlayerRecord>();
+            foreach (var applicantId in player.PendingCircleApplicantIds.ToArray())
+            {
+                if (!_playersById.TryGetValue(applicantId, out var applicant) || applicant.CircleId != 0)
+                {
+                    player.PendingCircleApplicantIds.Remove(applicantId);
+                    continue;
+                }
+
+                applicants.Add(applicant);
+            }
+
+            return applicants.OrderBy(applicant => applicant.ProfileId).ToArray();
         }
     }
 
@@ -275,7 +379,9 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
         {
             return _playersById.Values
                 .Where(master => !ReferenceEquals(master, player) && master.OwnedCircle != null)
-                .Select(master => (Circle: master.OwnedCircle!.Clone(), Master: master))
+                .Select(master => BuildCircleSnapshotUnsafe(master.OwnedCircle!.Id))
+                .Where(snapshot => snapshot != null)
+                .Select(snapshot => (Circle: snapshot!.Circle, Master: snapshot.Master))
                 .OrderBy(item => item.Circle.Id)
                 .ToArray();
         }
@@ -315,7 +421,7 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
     {
         lock (_circleStateLock)
         {
-            if (requester.CircleId == 0 ||
+            if (requester.OwnedCircle == null ||
                 !_playersById.TryGetValue(playerId, out var target) ||
                 ReferenceEquals(requester, target) ||
                 target.CircleId != 0)
@@ -329,7 +435,7 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
     {
         lock (_circleStateLock)
         {
-            if (requester.CircleId == 0)
+            if (requester.OwnedCircle == null)
                 return [];
 
             return _playersById.Values
@@ -345,7 +451,7 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
     {
         lock (_circleStateLock)
         {
-            if (requester.CircleId == 0 ||
+            if (requester.OwnedCircle == null ||
                 !_playersById.TryGetValue(playerId, out var target) ||
                 ReferenceEquals(requester, target) ||
                 target.CircleId != 0)
@@ -360,6 +466,9 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
     {
         lock (_circleStateLock)
         {
+            if (requester.OwnedCircle == null)
+                return;
+
             requester.OutgoingCircleInvitationPlayerIds.Remove(playerId);
             if (_playersById.TryGetValue(playerId, out var target))
                 target.IncomingCircleInviterPlayerIds.Remove(requester.PlayerId);
@@ -369,19 +478,67 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
     public PlayerRecord[] GetInvitedCirclePlayers(PlayerRecord requester)
     {
         lock (_circleStateLock)
-            return ResolvePlayers(requester.OutgoingCircleInvitationPlayerIds);
+            return requester.OwnedCircle == null
+                ? []
+                : ResolvePlayers(requester.OutgoingCircleInvitationPlayerIds);
     }
 
     public (Circle Circle, PlayerRecord Inviter)[] GetIncomingCircleInvitations(PlayerRecord player)
     {
         lock (_circleStateLock)
         {
+            if (player.CircleId != 0)
+                return [];
+
             return ResolvePlayers(player.IncomingCircleInviterPlayerIds)
                 .Where(inviter => inviter.OwnedCircle != null)
-                .Select(inviter => (Circle: inviter.OwnedCircle!.Clone(), Inviter: inviter))
+                .Select(inviter => BuildCircleSnapshotUnsafe(inviter.OwnedCircle!.Id))
+                .Where(snapshot => snapshot != null)
+                .Select(snapshot => (Circle: snapshot!.Circle, Inviter: snapshot.Master))
                 .OrderBy(item => item.Circle.Id)
                 .ToArray();
         }
+    }
+
+    private CircleSnapshot? BuildCircleSnapshotUnsafe(ulong circleId)
+    {
+        if (circleId == 0)
+            return null;
+
+        var master = _playersById.Values.FirstOrDefault(player => player.OwnedCircle?.Id == circleId);
+        if (master?.OwnedCircle == null)
+            return null;
+
+        var members = _playersById.Values
+            .Where(player => player.CircleId == circleId)
+            .OrderBy(player => ReferenceEquals(player, master) ? 0 : 1)
+            .ThenBy(player => player.ProfileId)
+            .ToArray();
+        var circle = master.OwnedCircle.Clone();
+        circle.MemberCount = (uint)members.Length;
+        return new CircleSnapshot(circle, master, members);
+    }
+
+    private void UpdateCircleMemberCountUnsafe(PlayerRecord master)
+    {
+        if (master.OwnedCircle == null)
+            return;
+
+        master.OwnedCircle.MemberCount = (uint)_playersById.Values.Count(player => player.CircleId == master.OwnedCircle.Id);
+    }
+
+    private void ClearPendingApplicantUnsafe(string playerId)
+    {
+        foreach (var owner in _playersById.Values)
+            owner.PendingCircleApplicantIds.Remove(playerId);
+    }
+
+    private void RemoveCircleInvitationEdgesUnsafe(PlayerRecord player)
+    {
+        foreach (var inviter in _playersById.Values)
+            inviter.OutgoingCircleInvitationPlayerIds.Remove(player.PlayerId);
+
+        player.IncomingCircleInviterPlayerIds.Clear();
     }
 
     public void UpdateDisplayName(PlayerRecord player, string displayName)
@@ -418,6 +575,14 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
             {
                 lock (_circleStateLock)
                 {
+                    var joinedCircleId = player.CircleId;
+                    var ownedCircleId = player.OwnedCircle?.Id ?? 0;
+                    if (ownedCircleId != 0)
+                    {
+                        foreach (var member in _playersById.Values.Where(candidate => candidate.CircleId == ownedCircleId))
+                            member.CircleId = 0;
+                    }
+
                     foreach (var other in _playersById.Values)
                     {
                         other.InvitationEstablishments.Remove(player.PlayerId);
@@ -425,10 +590,22 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
                         other.AcceptedFriendPlayerIds.Remove(player.PlayerId);
                         other.PendingSentFriendPlayerIds.Remove(player.PlayerId);
                         other.ReceivedFriendPlayerIds.Remove(player.PlayerId);
+                        other.PendingCircleApplicantIds.Remove(player.PlayerId);
                         other.OutgoingCircleInvitationPlayerIds.Remove(player.PlayerId);
                         other.IncomingCircleInviterPlayerIds.Remove(player.PlayerId);
                     }
 
+                    player.PendingCircleApplicantIds.Clear();
+                    player.OutgoingCircleInvitationPlayerIds.Clear();
+                    player.IncomingCircleInviterPlayerIds.Clear();
+                    player.CircleId = 0;
+                    player.OwnedCircle = null;
+                    if (ownedCircleId == 0 && joinedCircleId != 0)
+                    {
+                        var master = _playersById.Values.FirstOrDefault(candidate => candidate.OwnedCircle?.Id == joinedCircleId);
+                        if (master != null)
+                            UpdateCircleMemberCountUnsafe(master);
+                    }
                     _playersByAuthorization.TryRemove(player.AuthorizationKey, out _);
                     _playersByProfileId.TryRemove(player.ProfileId, out _);
                     _playersById.TryRemove(player.PlayerId, out _);

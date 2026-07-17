@@ -4,6 +4,11 @@ using MyNotes.Services;
 
 namespace MyNotes.Middleware;
 
+public sealed class GrpcStatusException(string status, string message) : Exception(message)
+{
+    public string Status { get; } = status;
+}
+
 public static class GrpcEndpointExtensions
 {
     public static IEndpointRouteBuilder MapGrpcUnary<TRequest, TResponse>(
@@ -42,8 +47,15 @@ public static class GrpcEndpointExtensions
                 return;
             }
 
-            var response = await handler(context, frame.Payload);
-            await GrpcFraming.WriteResponseAsync(context, response);
+            try
+            {
+                var response = await handler(context, frame.Payload);
+                await GrpcFraming.WriteResponseAsync(context, response);
+            }
+            catch (GrpcStatusException exception)
+            {
+                await GrpcFraming.WriteErrorAsync(context, exception.Status, exception.Message);
+            }
         });
 
         return endpoints;

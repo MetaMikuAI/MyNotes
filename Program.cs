@@ -387,22 +387,21 @@ app.MapGrpcUnary(
     (ctx, request) =>
     {
         var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
-        var circle = players.GetCircleDetail(request.CircleId);
+        var circle = players.GetCircleSnapshot(request.CircleId);
         if (circle == null)
             return Task.FromResult(new Protocol.Circle.GetCircleResponse());
 
         var profiles = ctx.RequestServices.GetRequiredService<PlayerProtocolBuilder>();
         var detail = new App.Protobuf.Entity.CircleDetailWithPlayerList
         {
-            Detail = circle.Value.Circle
+            Detail = circle.Circle
         };
-        detail.Players.Add(new App.Protobuf.Entity.CirclePlayer
-        {
-            PlayerId = circle.Value.Master.PlayerId,
-            CircleId = circle.Value.Circle.Id,
-            Auth = (uint)App.Protobuf.Entity.CircleAuth.Master,
-            Profile = profiles.BuildSimpleProfile(circle.Value.Master)
-        });
+        detail.Players.Add(circle.Members.Select(member => profiles.BuildCirclePlayer(
+            member,
+            circle.Circle.Id,
+            ReferenceEquals(member, circle.Master)
+                ? App.Protobuf.Entity.CircleAuth.Master
+                : App.Protobuf.Entity.CircleAuth.Normal)));
         return Task.FromResult(new Protocol.Circle.GetCircleResponse { Circle = detail });
     });
 
@@ -413,21 +412,20 @@ app.MapGrpcUnary(
     {
         var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
         var player = players.GetFromRequest(ctx.Request);
-        var circle = players.GetCircleDetail(player.CircleId);
+        var circle = players.GetCircleSnapshot(player.CircleId);
         if (circle == null)
             return Task.FromResult(new Protocol.Circle.GetCircleSettingResponse());
 
         var profiles = ctx.RequestServices.GetRequiredService<PlayerProtocolBuilder>();
         return Task.FromResult(new Protocol.Circle.GetCircleSettingResponse
         {
-            Circle = circle.Value.Circle,
-            CirclePlayer = new App.Protobuf.Entity.CirclePlayer
-            {
-                PlayerId = player.PlayerId,
-                CircleId = circle.Value.Circle.Id,
-                Auth = (uint)App.Protobuf.Entity.CircleAuth.Master,
-                Profile = profiles.BuildSimpleProfile(player)
-            }
+            Circle = circle.Circle,
+            CirclePlayer = profiles.BuildCirclePlayer(
+                player,
+                circle.Circle.Id,
+                ReferenceEquals(player, circle.Master)
+                    ? App.Protobuf.Entity.CircleAuth.Master
+                    : App.Protobuf.Entity.CircleAuth.Normal)
         });
     });
 
@@ -448,24 +446,28 @@ app.MapGrpcUnary(
     {
         var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
         var player = players.GetFromRequest(ctx.Request);
-        var circle = players.GetCircleDetail(player.CircleId);
+        var circle = players.GetCircleSnapshot(player.CircleId);
         if (circle == null)
             return Task.FromResult(new Protocol.Circle.UpdateCircleTopResponse());
 
         var profiles = ctx.RequestServices.GetRequiredService<PlayerProtocolBuilder>();
-        var circlePlayer = new App.Protobuf.Entity.CirclePlayer
-        {
-            PlayerId = player.PlayerId,
-            CircleId = circle.Value.Circle.Id,
-            Auth = (uint)App.Protobuf.Entity.CircleAuth.Master,
-            Profile = profiles.BuildSimpleProfile(player)
-        };
+        var circlePlayer = profiles.BuildCirclePlayer(
+            player,
+            circle.Circle.Id,
+            ReferenceEquals(player, circle.Master)
+                ? App.Protobuf.Entity.CircleAuth.Master
+                : App.Protobuf.Entity.CircleAuth.Normal);
         var top = new App.Protobuf.Entity.UpdateCircleTop
         {
-            Circle = circle.Value.Circle,
+            Circle = circle.Circle,
             CurrentPlayer = circlePlayer
         };
-        top.Players.Add(circlePlayer.Clone());
+        top.Players.Add(circle.Members.Select(member => profiles.BuildCirclePlayer(
+            member,
+            circle.Circle.Id,
+            ReferenceEquals(member, circle.Master)
+                ? App.Protobuf.Entity.CircleAuth.Master
+                : App.Protobuf.Entity.CircleAuth.Normal)));
         return Task.FromResult(new Protocol.Circle.UpdateCircleTopResponse { CircleTop = top });
     });
 
@@ -557,9 +559,36 @@ app.MapGrpcUnary(
     });
 
 app.MapGrpcUnary(
+    "/app.circlejoinrequest.CircleJoinReqService/CircleJoinReq",
+    Protocol.CircleJoinRequest.CircleJoinReqRequest.Parser,
+    (ctx, request) =>
+    {
+        var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        var player = players.GetFromRequest(ctx.Request);
+        var circleId = request.HasCircleId ? request.CircleId : 0;
+        var outcome = players.JoinCircle(player, circleId);
+        if (outcome is PlayerManager.CircleJoinOutcome.MissingCircle or PlayerManager.CircleJoinOutcome.Rejected)
+            throw new GrpcStatusException("9", "circle join request is not valid");
+
+        return Task.FromResult(new Protocol.CircleJoinRequest.CircleJoinReqResponse());
+    });
+
+app.MapGrpcUnary(
     "/app.circlejoinrequest.CircleJoinReqService/GetCircleJoinRequestList",
     Empty.Parser,
-    static (_, _) => Task.FromResult(new Protocol.CircleJoinRequest.GetCircleJoinRequestListResponse()));
+    (ctx, _) =>
+    {
+        var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        var profiles = ctx.RequestServices.GetRequiredService<PlayerProtocolBuilder>();
+        var response = new Protocol.CircleJoinRequest.GetCircleJoinRequestListResponse();
+        response.CircleJoinRequests.Add(players.GetCircleJoinRequests(players.GetFromRequest(ctx.Request)).Select(applicant =>
+            new App.Protobuf.Entity.CircleJoinRequest
+            {
+                PlayerId = applicant.PlayerId,
+                Profile = profiles.BuildSimpleProfile(applicant)
+            }));
+        return Task.FromResult(response);
+    });
 
 app.MapGrpcUnary(
     "/app.circleranking.CircleRankingService/GetCircleRanking",
@@ -588,10 +617,10 @@ app.MapGrpcUnary(
     {
         var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
         var player = players.GetFromRequest(ctx.Request);
-        var auth = player.CircleId == 0
-            ? App.Protobuf.Entity.CircleAuth.Normal
-            : App.Protobuf.Entity.CircleAuth.Master;
-        return Task.FromResult(new Protocol.CirclePlayer.GetPlayerAuthResponse { Auth = auth });
+        return Task.FromResult(new Protocol.CirclePlayer.GetPlayerAuthResponse
+        {
+            Auth = players.GetCircleAuth(player)
+        });
     });
 
 app.MapGrpcUnary(

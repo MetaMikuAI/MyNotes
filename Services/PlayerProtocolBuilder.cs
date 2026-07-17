@@ -54,6 +54,14 @@ public sealed class PlayerProtocolBuilder(MasterDataService master)
         return BuildSimpleProfile(player, initialData, mainDeck);
     }
 
+    public CirclePlayer BuildCirclePlayer(PlayerRecord player, ulong circleId, CircleAuth auth) => new()
+    {
+        PlayerId = player.PlayerId,
+        CircleId = circleId,
+        Auth = (uint)auth,
+        Profile = BuildSimpleProfile(player)
+    };
+
     public Friends BuildFriends(PlayerRecord player, PlayerManager players)
     {
         var state = players.GetFriendState(player);

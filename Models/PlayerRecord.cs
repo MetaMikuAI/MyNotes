@@ -38,6 +38,7 @@ public sealed class PlayerRecord
     internal HashSet<string> ReceivedFriendPlayerIds { get; } = [];
     internal ulong CircleId { get; set; }
     internal Circle? OwnedCircle { get; set; }
+    internal HashSet<string> PendingCircleApplicantIds { get; } = [];
     internal HashSet<string> OutgoingCircleInvitationPlayerIds { get; } = [];
     internal HashSet<string> IncomingCircleInviterPlayerIds { get; } = [];
     public ConcurrentDictionary<long, byte> ShownCarouselHelpIds { get; } = new();
