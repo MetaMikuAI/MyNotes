@@ -8,7 +8,18 @@ namespace MyNotes.Services;
 
 public sealed class PlayerManager(ILogger<PlayerManager> logger)
 {
-    public sealed record CircleSnapshot(Circle Circle, PlayerRecord Master, PlayerRecord[] Members);
+    public sealed record CircleSnapshot(
+        Circle Circle,
+        PlayerRecord Master,
+        PlayerRecord[] Members,
+        string[] SubmasterPlayerIds)
+    {
+        public CircleAuth GetAuth(PlayerRecord player) => ReferenceEquals(player, Master)
+            ? CircleAuth.Master
+            : SubmasterPlayerIds.Contains(player.PlayerId)
+                ? CircleAuth.Submaster
+                : CircleAuth.Normal;
+    }
 
     public enum CircleJoinOutcome
     {
@@ -21,6 +32,7 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
     private const int FavoriteStampGroupCount = 3;
     private const int FavoriteStampNameMaxLength = 6;
     private const int FavoriteStampSlotCount = 20;
+    private const int CircleSubmasterMaxCount = 2;
     private readonly ConcurrentDictionary<string, PlayerRecord> _playersById = new();
     private readonly ConcurrentDictionary<long, PlayerRecord> _playersByProfileId = new();
     private readonly ConcurrentDictionary<string, PlayerRecord> _playersByAuthorization = new(StringComparer.Ordinal);
@@ -225,6 +237,8 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
             var circleId = _nextCircleId++;
             ClearPendingApplicantUnsafe(player.PlayerId);
             RemoveCircleInvitationEdgesUnsafe(player);
+            ClearCircleSubmasterUnsafe(player.PlayerId);
+            player.CircleSubmasterPlayerIds.Clear();
             player.CircleId = circleId;
             player.OwnedCircle = new Circle
             {
@@ -273,6 +287,7 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
             player.PendingCircleApplicantIds.Clear();
             player.OutgoingCircleInvitationPlayerIds.Clear();
             player.IncomingCircleInviterPlayerIds.Clear();
+            player.CircleSubmasterPlayerIds.Clear();
             player.CircleId = 0;
             player.OwnedCircle = null;
         }
@@ -289,8 +304,26 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
                 target.CircleId != requester.OwnedCircle.Id)
                 return;
 
+            requester.CircleSubmasterPlayerIds.Remove(target.PlayerId);
             target.CircleId = 0;
             UpdateCircleMemberCountUnsafe(requester);
+        }
+    }
+
+    public void SetCircleSubmaster(PlayerRecord requester, string playerId)
+    {
+        lock (_circleStateLock)
+        {
+            if (requester.OwnedCircle == null ||
+                !_playersById.TryGetValue(playerId, out var target) ||
+                ReferenceEquals(requester, target) ||
+                target.OwnedCircle != null ||
+                target.CircleId != requester.OwnedCircle.Id ||
+                requester.CircleSubmasterPlayerIds.Contains(target.PlayerId) ||
+                requester.CircleSubmasterPlayerIds.Count >= CircleSubmasterMaxCount)
+                return;
+
+            requester.CircleSubmasterPlayerIds.Add(target.PlayerId);
         }
     }
 
@@ -314,9 +347,7 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
             if (snapshot == null || !snapshot.Members.Contains(player))
                 return App.Protobuf.Entity.CircleAuth.Normal;
 
-            return ReferenceEquals(snapshot.Master, player)
-                ? App.Protobuf.Entity.CircleAuth.Master
-                : App.Protobuf.Entity.CircleAuth.Normal;
+            return snapshot.GetAuth(player);
         }
     }
 
@@ -554,7 +585,11 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
             .ToArray();
         var circle = master.OwnedCircle.Clone();
         circle.MemberCount = (uint)members.Length;
-        return new CircleSnapshot(circle, master, members);
+        var submasterPlayerIds = members
+            .Where(member => master.CircleSubmasterPlayerIds.Contains(member.PlayerId))
+            .Select(member => member.PlayerId)
+            .ToArray();
+        return new CircleSnapshot(circle, master, members, submasterPlayerIds);
     }
 
     private void UpdateCircleMemberCountUnsafe(PlayerRecord master)
@@ -567,6 +602,7 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
 
     private void EstablishCircleMembershipUnsafe(PlayerRecord player, PlayerRecord master)
     {
+        ClearCircleSubmasterUnsafe(player.PlayerId);
         player.CircleId = master.OwnedCircle!.Id;
         ClearPendingApplicantUnsafe(player.PlayerId);
         RemoveCircleInvitationEdgesUnsafe(player);
@@ -577,6 +613,12 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
     {
         foreach (var owner in _playersById.Values)
             owner.PendingCircleApplicantIds.Remove(playerId);
+    }
+
+    private void ClearCircleSubmasterUnsafe(string playerId)
+    {
+        foreach (var owner in _playersById.Values)
+            owner.CircleSubmasterPlayerIds.Remove(playerId);
     }
 
     private void RemoveCircleInvitationEdgesUnsafe(PlayerRecord player)
@@ -623,6 +665,7 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
                 {
                     var joinedCircleId = player.CircleId;
                     var ownedCircleId = player.OwnedCircle?.Id ?? 0;
+                    ClearCircleSubmasterUnsafe(player.PlayerId);
                     if (ownedCircleId != 0)
                     {
                         foreach (var member in _playersById.Values.Where(candidate => candidate.CircleId == ownedCircleId))
@@ -644,6 +687,7 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
                     player.PendingCircleApplicantIds.Clear();
                     player.OutgoingCircleInvitationPlayerIds.Clear();
                     player.IncomingCircleInviterPlayerIds.Clear();
+                    player.CircleSubmasterPlayerIds.Clear();
                     player.CircleId = 0;
                     player.OwnedCircle = null;
                     if (ownedCircleId == 0 && joinedCircleId != 0)

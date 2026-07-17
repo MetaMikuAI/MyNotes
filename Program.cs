@@ -399,9 +399,7 @@ app.MapGrpcUnary(
         detail.Players.Add(circle.Members.Select(member => profiles.BuildCirclePlayer(
             member,
             circle.Circle.Id,
-            ReferenceEquals(member, circle.Master)
-                ? App.Protobuf.Entity.CircleAuth.Master
-                : App.Protobuf.Entity.CircleAuth.Normal)));
+            circle.GetAuth(member))));
         return Task.FromResult(new Protocol.Circle.GetCircleResponse { Circle = detail });
     });
 
@@ -423,9 +421,7 @@ app.MapGrpcUnary(
             CirclePlayer = profiles.BuildCirclePlayer(
                 player,
                 circle.Circle.Id,
-                ReferenceEquals(player, circle.Master)
-                    ? App.Protobuf.Entity.CircleAuth.Master
-                    : App.Protobuf.Entity.CircleAuth.Normal)
+                circle.GetAuth(player))
         });
     });
 
@@ -437,6 +433,16 @@ app.MapGrpcUnary(
         var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
         players.DeleteCircle(players.GetFromRequest(ctx.Request));
         return Task.FromResult(new Empty());
+    });
+
+app.MapGrpcUnary(
+    "/app.circle.CircleService/SetSubmaster",
+    Protocol.Circle.ChangeAuthRequest.Parser,
+    (ctx, request) =>
+    {
+        var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        players.SetCircleSubmaster(players.GetFromRequest(ctx.Request), request.PlayerId);
+        return Task.FromResult(new Protocol.Circle.ChangeAuthResponse());
     });
 
 app.MapGrpcUnary(
@@ -464,9 +470,7 @@ app.MapGrpcUnary(
         var circlePlayer = profiles.BuildCirclePlayer(
             player,
             circle.Circle.Id,
-            ReferenceEquals(player, circle.Master)
-                ? App.Protobuf.Entity.CircleAuth.Master
-                : App.Protobuf.Entity.CircleAuth.Normal);
+            circle.GetAuth(player));
         var top = new App.Protobuf.Entity.UpdateCircleTop
         {
             Circle = circle.Circle,
@@ -475,9 +479,7 @@ app.MapGrpcUnary(
         top.Players.Add(circle.Members.Select(member => profiles.BuildCirclePlayer(
             member,
             circle.Circle.Id,
-            ReferenceEquals(member, circle.Master)
-                ? App.Protobuf.Entity.CircleAuth.Master
-                : App.Protobuf.Entity.CircleAuth.Normal)));
+            circle.GetAuth(member))));
         return Task.FromResult(new Protocol.Circle.UpdateCircleTopResponse { CircleTop = top });
     });
 
