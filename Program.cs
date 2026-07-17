@@ -440,6 +440,16 @@ app.MapGrpcUnary(
     });
 
 app.MapGrpcUnary(
+    "/app.circle.CircleService/RemovePlayer",
+    Protocol.Circle.RemovePlayerRequest.Parser,
+    (ctx, request) =>
+    {
+        var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        players.RemoveCirclePlayer(players.GetFromRequest(ctx.Request), request.PlayerId);
+        return Task.FromResult(new Protocol.Circle.RemovePlayerResponse());
+    });
+
+app.MapGrpcUnary(
     "/app.circle.CircleService/UpdateCircleTop",
     Empty.Parser,
     (ctx, _) =>
