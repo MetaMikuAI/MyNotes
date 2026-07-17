@@ -574,6 +574,19 @@ app.MapGrpcUnary(
     });
 
 app.MapGrpcUnary(
+    "/app.circlejoinrequest.CircleJoinReqService/CircleJoinApprove",
+    Protocol.CircleJoinRequest.CircleJoinApproveRequest.Parser,
+    (ctx, request) =>
+    {
+        if (request.HasPlayerId)
+        {
+            var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+            players.ApproveCircleJoinRequest(players.GetFromRequest(ctx.Request), request.PlayerId);
+        }
+        return Task.FromResult(new Protocol.CircleJoinRequest.CircleJoinApproveResponse());
+    });
+
+app.MapGrpcUnary(
     "/app.circlejoinrequest.CircleJoinReqService/CircleJoinRevoke",
     Protocol.CircleJoinRequest.CircleJoinRevokeRequest.Parser,
     (ctx, request) =>

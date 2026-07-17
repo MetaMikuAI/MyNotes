@@ -342,11 +342,22 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
                     return CircleJoinOutcome.Rejected;
             }
 
-            player.CircleId = circleId;
-            ClearPendingApplicantUnsafe(player.PlayerId);
-            RemoveCircleInvitationEdgesUnsafe(player);
-            UpdateCircleMemberCountUnsafe(master);
+            EstablishCircleMembershipUnsafe(player, master);
             return CircleJoinOutcome.Joined;
+        }
+    }
+
+    public void ApproveCircleJoinRequest(PlayerRecord requester, string playerId)
+    {
+        lock (_circleStateLock)
+        {
+            if (requester.OwnedCircle == null ||
+                !requester.PendingCircleApplicantIds.Contains(playerId) ||
+                !_playersById.TryGetValue(playerId, out var applicant) ||
+                applicant.CircleId != 0)
+                return;
+
+            EstablishCircleMembershipUnsafe(applicant, requester);
         }
     }
 
@@ -536,6 +547,14 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
             return;
 
         master.OwnedCircle.MemberCount = (uint)_playersById.Values.Count(player => player.CircleId == master.OwnedCircle.Id);
+    }
+
+    private void EstablishCircleMembershipUnsafe(PlayerRecord player, PlayerRecord master)
+    {
+        player.CircleId = master.OwnedCircle!.Id;
+        ClearPendingApplicantUnsafe(player.PlayerId);
+        RemoveCircleInvitationEdgesUnsafe(player);
+        UpdateCircleMemberCountUnsafe(master);
     }
 
     private void ClearPendingApplicantUnsafe(string playerId)
