@@ -436,6 +436,16 @@ app.MapGrpcUnary(
     });
 
 app.MapGrpcUnary(
+    "/app.circle.CircleService/TransferSubmaster",
+    Protocol.Circle.ChangeAuthRequest.Parser,
+    (ctx, request) =>
+    {
+        var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        players.TransferCircleSubmaster(players.GetFromRequest(ctx.Request), request.PlayerId);
+        return Task.FromResult(new Protocol.Circle.ChangeAuthResponse());
+    });
+
+app.MapGrpcUnary(
     "/app.circle.CircleService/SetSubmaster",
     Protocol.Circle.ChangeAuthRequest.Parser,
     (ctx, request) =>
