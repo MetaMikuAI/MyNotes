@@ -327,6 +327,54 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
         }
     }
 
+    public void TransferCircleMaster(PlayerRecord requester, string playerId)
+    {
+        lock (_circleStateLock)
+        {
+            var circle = requester.OwnedCircle;
+            if (circle == null ||
+                requester.CircleId != circle.Id ||
+                !_playersById.TryGetValue(playerId, out var target) ||
+                ReferenceEquals(requester, target) ||
+                target.OwnedCircle != null ||
+                target.CircleId != circle.Id)
+                return;
+
+            var targetWasSubmaster = requester.CircleSubmasterPlayerIds.Remove(target.PlayerId);
+            target.CircleSubmasterPlayerIds.Clear();
+            target.CircleSubmasterPlayerIds.UnionWith(requester.CircleSubmasterPlayerIds);
+            target.CircleSubmasterPlayerIds.Remove(requester.PlayerId);
+            target.CircleSubmasterPlayerIds.Remove(target.PlayerId);
+            if (targetWasSubmaster)
+                target.CircleSubmasterPlayerIds.Add(requester.PlayerId);
+            requester.CircleSubmasterPlayerIds.Clear();
+
+            target.PendingCircleApplicantIds.Clear();
+            target.PendingCircleApplicantIds.UnionWith(requester.PendingCircleApplicantIds);
+            requester.PendingCircleApplicantIds.Clear();
+
+            foreach (var invitedPlayerId in target.OutgoingCircleInvitationPlayerIds)
+            {
+                if (_playersById.TryGetValue(invitedPlayerId, out var invitedPlayer))
+                    invitedPlayer.IncomingCircleInviterPlayerIds.Remove(target.PlayerId);
+            }
+            target.OutgoingCircleInvitationPlayerIds.Clear();
+            target.OutgoingCircleInvitationPlayerIds.UnionWith(requester.OutgoingCircleInvitationPlayerIds);
+            foreach (var invitedPlayerId in target.OutgoingCircleInvitationPlayerIds)
+            {
+                if (!_playersById.TryGetValue(invitedPlayerId, out var invitedPlayer))
+                    continue;
+
+                invitedPlayer.IncomingCircleInviterPlayerIds.Remove(requester.PlayerId);
+                invitedPlayer.IncomingCircleInviterPlayerIds.Add(target.PlayerId);
+            }
+            requester.OutgoingCircleInvitationPlayerIds.Clear();
+
+            requester.OwnedCircle = null;
+            target.OwnedCircle = circle;
+        }
+    }
+
     public void TransferCircleSubmaster(PlayerRecord requester, string playerId)
     {
         lock (_circleStateLock)
