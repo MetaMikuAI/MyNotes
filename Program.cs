@@ -885,6 +885,11 @@ app.MapGrpcUnary(
     static (_, _) => Task.FromResult(new Protocol.LiveMusic.GetRankingResponse()));
 
 app.MapGrpcUnary(
+    "/app.livemusic.LiveMusicService/SaveFavorite",
+    Protocol.LiveMusic.SaveFavoriteRequest.Parser,
+    static (_, _) => Task.FromResult(new Protocol.LiveMusic.SaveFavoriteResponse()));
+
+app.MapGrpcUnary(
     "/app.shop.ShopService/CheckMaintenanceShop",
     Protocol.Shop.CheckMaintenanceShopRequest.Parser,
     static (_, _) => Task.FromResult(new Protocol.Shop.CheckMaintenanceShopResponse()));
