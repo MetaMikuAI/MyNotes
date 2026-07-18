@@ -293,6 +293,22 @@ public sealed class PlayerManager(ILogger<PlayerManager> logger)
         }
     }
 
+    public void ExitCircle(PlayerRecord player)
+    {
+        lock (_circleStateLock)
+        {
+            var circle = BuildCircleSnapshotUnsafe(player.CircleId);
+            if (player.OwnedCircle != null ||
+                circle == null ||
+                !circle.Members.Contains(player))
+                return;
+
+            circle.Master.CircleSubmasterPlayerIds.Remove(player.PlayerId);
+            player.CircleId = 0;
+            UpdateCircleMemberCountUnsafe(circle.Master);
+        }
+    }
+
     public void RemoveCirclePlayer(PlayerRecord requester, string playerId)
     {
         lock (_circleStateLock)

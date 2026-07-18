@@ -436,6 +436,16 @@ app.MapGrpcUnary(
     });
 
 app.MapGrpcUnary(
+    "/app.circle.CircleService/ExitCircle",
+    Protocol.Circle.ExitCircleRequest.Parser,
+    (ctx, _) =>
+    {
+        var players = ctx.RequestServices.GetRequiredService<PlayerManager>();
+        players.ExitCircle(players.GetFromRequest(ctx.Request));
+        return Task.FromResult(new Protocol.Circle.ExitCircleResponse());
+    });
+
+app.MapGrpcUnary(
     "/app.circle.CircleService/TransferMaster",
     Protocol.Circle.ChangeAuthRequest.Parser,
     (ctx, request) =>
